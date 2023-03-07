@@ -1,23 +1,16 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="CRAP">
-  <!-- Define the base link of the robot -->
-    <link name="base_footprint">
-      <visual>
-          <origin xyz="0 0 0" rpy="0 0 0" />
-          <geometry>
-              <box size="0.001 0.001 0.001" />
-          </geometry>
-      </visual>
-  </link>
-  <gazebo reference="base_footprint">
-      <turnGravityOff>false</turnGravityOff>
-  </gazebo>
+  <xacro:property name="base_width" value="0.5"/>
+  <xacro:property name="base_length" value="0.5"/>
+  <xacro:property name="base_height" value="0.05"/>
 
-  <joint name="base_footprint_joint" type="fixed">
-      <parent link="base_footprint"/>
-      <child link="base_link" />
-  </joint>
-  
+  <xacro:property name="wheel_radius" value="0.05"/>
+  <xacro:property name="wheel_width" value="0.02"/>
+  <xacro:property name="wheel_ygap" value="0.025"/>
+  <xacro:property name="wheel_zoff" value="0.05"/>
+
+
+  <!-- Define the base link of the robot -->
   
   <link name="base_link">
     <inertial>
@@ -27,9 +20,8 @@
     </inertial>
 
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.5 0.5 0.05"/>
+        <box size="${base_length} ${base_width} ${base_height}"/>
       </geometry>
       <material name="red">
         <color rgba="1 0 0 1"/>
@@ -42,15 +34,28 @@
       </geometry>
     </collision>
   </link>
+  
+  <link name="base_footprint"/>
+
+  <!-- <gazebo reference="base_footprint">
+      <turnGravityOff>false</turnGravityOff>
+  </gazebo> -->
+
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="base_footprint"/>
+    <origin xyz="0.0 0.0 ${-(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
+  </joint>
 
   <!-- Define the four  wheels -->
   <xacro:include filename="wheel.xacro"/>
-  <xacro:wheel name="front_left_wheel" parent="base_link" x="0.25" y="0.25" />
-  <xacro:wheel name="front_right_wheel" parent="base_link" x="0.25" y="-0.25" />
+  <xacro:wheel name="front_left_wheel" parent="base_link" x="0.25" y="0.25" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
+  <xacro:wheel name="front_right_wheel" parent="base_link" x="0.25" y="-0.25" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
   
   <xacro:include filename="wheel_driven.xacro"/>
-  <xacro:wheel_driven name="rear_left_wheel" parent="base_link" x="-0.25" y="0.25" />
-  <xacro:wheel_driven name="rear_right_wheel" parent="base_link" x="-0.25" y="-0.25" />
+  <xacro:wheel_driven name="rear_left_wheel" parent="base_link" x="-0.25" y="0.25" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
+  <xacro:wheel_driven name="rear_right_wheel" parent="base_link" x="-0.25" y="-0.25" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
 
   <!-- Define the LIDAR sensor -->
   <xacro:include filename="lidar_gazebo.xacro"/>

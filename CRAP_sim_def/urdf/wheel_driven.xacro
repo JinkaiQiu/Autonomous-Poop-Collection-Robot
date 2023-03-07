@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="wheel_driven">
   <xacro:property name="M_PI" value="3.141592653589793"/>
-  <xacro:property name="radius" value="0.05"/>
-  <xacro:property name="thickness" value="0.02"/>
+  <!-- <xacro:property name="radius" value="0.05"/>
+  <xacro:property name="thickness" value="0.02"/> -->
 
-  <xacro:macro name="wheel_driven" params="name parent x y">
+  <xacro:macro name="wheel_driven" params="name parent x y z radius thickness">
     <!-- Define the wheel link -->
     <link name="${name}_link">
       <inertial>
@@ -33,7 +33,7 @@
 
     <!-- Define the wheel joint -->
     <joint name="${name}_joint" type="continuous">
-      <origin xyz="${x} ${y} 0" rpy="0 0 0"/>
+      <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
       <parent link="${parent}"/>
       <child link="${name}_link"/>
       <axis xyz="0 1 0"/>
