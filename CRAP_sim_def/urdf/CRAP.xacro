@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="CRAP">
+  <!-- Define the base link of the robot -->
+    <link name="base_footprint">
+      <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+              <box size="0.001 0.001 0.001" />
+          </geometry>
+      </visual>
+  </link>
+  <gazebo reference="base_footprint">
+      <turnGravityOff>false</turnGravityOff>
+  </gazebo>
+
+  <joint name="base_footprint_joint" type="fixed">
+      <parent link="base_footprint"/>
+      <child link="base_link" />
+  </joint>
+  
+  
+  <link name="base_link">
+    <inertial>
+      <mass value="10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+    </inertial>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.5 0.5 0.05"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+
+    <collision>
+      <geometry>
+          <box size="0.5 0.5 0.05"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Define the four  wheels -->
+  <xacro:include filename="wheel.xacro"/>
+  <xacro:wheel name="front_left_wheel" parent="base_link" x="0.25" y="0.25" />
+  <xacro:wheel name="front_right_wheel" parent="base_link" x="0.25" y="-0.25" />
+  
+  <xacro:include filename="wheel_driven.xacro"/>
+  <xacro:wheel_driven name="rear_left_wheel" parent="base_link" x="-0.25" y="0.25" />
+  <xacro:wheel_driven name="rear_right_wheel" parent="base_link" x="-0.25" y="-0.25" />
+
+  <!-- Define the LIDAR sensor -->
+  <xacro:include filename="lidar_gazebo.xacro"/>
+  <xacro:rplidar prefix="lidar" parent="base_link" x="0" y="0" z="0.1"/>
+
+  <!-- Define the rgbd camera -->
+  <xacro:include filename="kinect_gazebo.xacro"/>
+  <xacro:kinect_camera prefix="kinect" parent="base_link" x="0.27" y="0" z="0"/>
+  
+  <!-- Define the imu camera -->
+  <xacro:include filename="imu.xacro"/>
+  <xacro:imu prefix="imu" parent="base_link" x="-0.2" y="0" z="0.02"/>
+
+
+  <gazebo>
+      <plugin name='diff_drive' filename='libgazebo_ros_diff_drive.so'>
+
+      <!-- Update rate -->
+      <update_rate>100</update_rate>
+
+      <!-- Number of wheel pairs -->
+      <num_wheel_pairs>1</num_wheel_pairs>
+
+      <!-- wheels0 -->
+      <!-- <left_joint>front_left_wheel_joint</left_joint>
+      <right_joint>front_right_wheel_joint</right_joint> -->
+
+      <!-- wheels1-->
+      <left_joint>rear_left_wheel_joint</left_joint>
+      <right_joint>rear_right_wheel_joint</right_joint>
+
+      <!-- kinematics -->
+      <wheel_separation>0.5</wheel_separation>
+      <!-- <wheel_separation>0.5</wheel_separation> -->
+
+      <wheel_diameter>0.1</wheel_diameter>
+      <!-- <wheel_diameter>0.1</wheel_diameter> -->
+
+      <!-- limits -->
+      <max_wheel_torque>20</max_wheel_torque>
+      <max_wheel_acceleration>1.0</max_wheel_acceleration>
+
+      <!-- output -->
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>false</publish_odom_tf>
+      <publish_wheel_tf>true</publish_wheel_tf>
+
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+
+      </plugin>
+
+  </gazebo>
+
+</robot>
