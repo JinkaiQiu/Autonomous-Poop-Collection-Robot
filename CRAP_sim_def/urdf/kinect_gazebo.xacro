@@ -52,7 +52,7 @@
                 <baseline>0.2</baseline>
                 <alwaysOn>true</alwaysOn>
                 <updateRate>15.0</updateRate>
-                <frame_name>camera_depth_frame</frame_name>
+                <frame_name>${prefix}_depth_frame</frame_name>
                 <pointCloudCutoff>0.5</pointCloudCutoff>
                 <pointCloudCutoffMax>3.0</pointCloudCutoffMax>
                 <distortionK1>0</distortionK1>
