@@ -11,7 +11,7 @@ controller_manager:
 
 diff_cont:
   ros__parameters:
-
+    use_sim_time: true
     publish_rate: 30.0
 
     base_frame_id: base_link
@@ -22,7 +22,8 @@ diff_cont:
     wheel_radius: 0.05
 
     use_stamped_vel: false
-    
+    enable_odom_tf: true
+
     # open_loop: false    
 
     # wheels_per_side: x

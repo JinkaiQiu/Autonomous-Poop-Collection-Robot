@@ -86,6 +86,6 @@ def generate_launch_description():
         spawn_entity,
         launch.actions.DeclareLaunchArgument(name='use_sim_time', default_value='True',
                                             description='Flag to enable use_sim_time'),
-        robot_localization_node,
+        #robot_localization_node,
         # rviz_node       
     ])
