@@ -39,6 +39,18 @@ def generate_launch_description():
        parameters=[os.path.join(pkg_share, 'config/ekf.yaml'), {'use_sim_time': LaunchConfiguration('use_sim_time')}]
     )
 
+    diff_drive_spawner = launch_ros.actions.Node(
+        package = "controller_manager",
+        executable = "spawner",
+        arguments = ["diff_cont"]
+    )
+
+    joint_broad_spawner = launch_ros.actions.Node(
+        package = "controller_manager",
+        executable = "spawner",
+        arguments = ["joint_broad"]
+    )
+
     return launch.LaunchDescription([
         launch.actions.DeclareLaunchArgument(name='model', default_value=default_model_path,
                                             description='Absolute path to robot urdf file'),
@@ -49,6 +61,8 @@ def generate_launch_description():
                                             description='Flag to enable use_sim_time'),
         robot_state_publisher_node,
         spawn_entity,
-        robot_localization_node,
+        diff_drive_spawner,
+        joint_broad_spawner,
+        #robot_localization_node,
         rviz_node
     ])
