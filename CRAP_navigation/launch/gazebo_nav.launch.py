@@ -23,14 +23,22 @@ def generate_launch_description():
     )
 
     # SLAM launching
+    slam_config = os.path.join(pkg_share,'config/mapper_params_online_async.yaml')
     slam = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(
                     get_package_share_directory("slam_toolbox"),'launch','online_async_launch.py'
-                )]), launch_arguments={'use_sim_time': 'true','params_file': 'config/mapper_params_online_async.yaml'}.items()
+                )]), launch_arguments={'use_sim_time': 'true','params_file': slam_config}.items()
     )
 
+    nav = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([os.path.join(
+                    get_package_share_directory("nav2_bringup"),'launch','navigation_launch.py'
+                )]), launch_arguments={'use_sim_time': 'true'}.items()
+    )
+
+    
     return LaunchDescription([
             slam,
-            # robot_localization_node
-
+            # robot_localization_node,
+            # nav
         ])
