@@ -1,13 +1,17 @@
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Point
-from geometry_msgs.msg import Twist
+from rclpy.duration import Duration
+from geometry_msgs.msg import Point, Twist, PoseStamped, Quaternion
+from nav2_simple_commander.robot_navigator import BasicNavigator
 import time
+from tf2_ros import TransformListener, Buffer
+import numpy as np
+import math
 
-class FollowBall(Node):
+class PoopMove(Node):
 
     def __init__(self):
-        super().__init__('follow_ball')
+        super().__init__('poop_move')
 
         # subscribe to /detected_ball of type Point
         self.subscription = self.create_subscription(
@@ -15,23 +19,115 @@ class FollowBall(Node):
             'detected_ball',
             self.listener_callback,
             10)
-        self.publisher_ = self.create_publisher(Twist, '/cmd_vel', 10)
         
-        timer_period = 0.1
+        # create timer
+        timer_period = 1
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.lastDetectTime = time.time() - 10000;
-        self.detectionTimeout = 1
+        self.detectionTimeout = 2
+
+        self.navOffset = 0.2 # offset from ball to stop
+        self.navStopThreshold = 0.5 # threshold to stop navigation
+        self.ballLocMap = [0,0] # ball location in map frame
+
+        # initialize navigation
+        self.nav = BasicNavigator()
+        initial_pose = PoseStamped()
+        initial_pose.header.frame_id = 'map'
+        initial_pose.header.stamp = self.nav.get_clock().now().to_msg()
+
+        self.goal_pose = PoseStamped()   
+        self.goal_pose.header.frame_id = 'map'
+
+        # wait for transform from map to base_footprint
+        self.get_logger().info('Waiting for transform from map to base_footprint')
+        self.tf_buffer.wait_for_transform('base_footprint', 'map', rclpy.time(), rclpy.duration.Duration(seconds=30))
+        self.get_logger().info('Transform from map to base_footprint available')
+        
+        # obtain initial pose from map to base_footprint transform
+        try:
+            initial_transform = self.nav.tf_buffer.lookup_transform('map', 'base_footprint', rclpy.time.now())
+            initial_pose.pose.position.x = initial_transform.transform.translation.x
+            initial_pose.pose.position.y = initial_transform.transform.translation.y
+            initial_pose.pose.position.z = initial_transform.transform.translation.z
+            initial_pose.pose.orientation = initial_transform.transform.rotation
+            self.get_logger.info('Initial pose: {}'.format(initial_pose))
+        except Exception as e:
+            self.get_logger.error('Failed to obtain initial pose: {}'.format(e))
+        
+        # set initial pose
+        self.nav.set_initial_pose(initial_pose)
+
+        # start navigation
+        self.nav.lifecycleStartup()
+        self.get_logger().info('PoopMove initialized, navigation lifecycle started')
+
+
 
     def listener_callback(self, msg):
+        f = 0.9 # filter coefficient
         self.get_logger().info('Received: {} {}'.format(msg.x, msg.y))
         self.lastDetectTime = time.time()
+        # low pass filter for ball location to reduce noise
+        self.ballLocMap = [f*self.ballLocMap[0] + (1-f)*msg.x, f*self.ballLocMap[1] + (1-f)*msg.y]
         
+
     def timer_callback(self):
         msg = Twist()
-        # if detection time smaller than timeout
+        
+        # if detection time smaller than timeout, navigate to ball
         if (time.time() - self.lastDetectTime) < self.detectionTimeout: 
             self.get_logger().info('Detected')
-        else:
+            # get transform from map to base_footprint
+            baseTransform = self.nav.tf_buffer.lookup_transform('map', 'base_footprint', rclpy.time.now())
+            baseLocMap = [baseTransform.transform.translation.x, baseTransform.transform.translation.y]
+            
+            # calculate vector from base_footprint to ball
+            ballVecMap = np.array([self.ballLocMap[0] - baseLocMap[0], self.ballLocMap[1] - baseLocMap[1]])
+            ballVecMapUnit = ballVecMap/np.linalg.norm(ballVecMap)    
+            ballVecLen = np.linalg.norm(ballVecMap)
+            
+            # if ball is not close enough, navigate to ball
+            if ballVecLen > self.navStopThreshold:
+                self.get_logger().info('Distance to ball: {}'.format(ballVecLen))
+                self.get_logger().info('Base to Ball vector: {}'.format(ballVecMap))
+
+                # calculate yaw angle
+                yaw = math.atan2(ballVecMapUnit[1], ballVecMapUnit[0])
+                
+                # convert yaw angle to quaternion, set goal orientation
+                goal_orientation = Quaternion()
+                goal_orientation.x = 0.0
+                goal_orientation.y = 0.0
+                goal_orientation.z = math.sin(yaw/2)
+                goal_orientation.w = math.cos(yaw/2)
+
+                self.goal_pose.header.stamp = self.nav.get_clock().now().to_msg()
+                self.goal_pose.pose.position.x = self.ballLocMap[0] - ballVecMapUnit[0]*self.navOffset
+                self.goal_pose.pose.position.y = self.ballLocMap[1] - ballVecMapUnit[1]*self.navOffset
+                self.goal_pose.pose.orientation = goal_orientation
+
+                # send goal
+                self.nav.goToPose(self.goal_pose)
+            
+            else:
+                self.nav.cancelTask()
+                self.get_logger().info('Stopped')          
+            
+        else: # if detection time larger than timeout, stop navigation, search for ball
             self.get_logger().info('Target lost')
+            # cancel navigation if target is lost
+            self.nav.cancelTask()
+            
+
+        
+        
         self.publisher_.publish(msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    poop_move = PoopMove()
+    rclpy.spin(poop_move)
+    poop_move.destroy_node()
+    rclpy.shutdown()
 
