@@ -1,12 +1,13 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.duration import Duration
-from geometry_msgs.msg import Point, Twist, PoseStamped, Quaternion
+from geometry_msgs.msg import Point, Twist, PoseStamped, Quaternion, OccupancyGrid
 from nav2_simple_commander.robot_navigator import BasicNavigator
 import time
 from tf2_ros import TransformListener, Buffer
 import numpy as np
 import math
+import random
 
 class PoopMove(Node):
 
@@ -20,6 +21,13 @@ class PoopMove(Node):
             self.listener_callback,
             10)
         
+        # Subscribe to /global_costmap/costmap of type OccupancyGrid
+        self.subscription = self.create_subscription(
+            OccupancyGrid,
+            '/global_costmap/costmap',
+            self.Maplistener_callback,
+            10)
+
         # create timer
         timer_period = 1
         self.timer = self.create_timer(timer_period, self.timer_callback)
@@ -57,12 +65,17 @@ class PoopMove(Node):
         
         # set initial pose
         self.nav.set_initial_pose(initial_pose)
+        self.get_logger().info('Initial pose set')
 
         # start navigation
         self.nav.lifecycleStartup()
         self.get_logger().info('PoopMove initialized, navigation lifecycle started')
 
+        # set iteration flag
+        self.plannerEnableFlag = True
 
+        # set costmap threshold
+        self.cost_threshold = 20
 
     def listener_callback(self, msg):
         f = 0.9 # filter coefficient
@@ -70,7 +83,14 @@ class PoopMove(Node):
         self.lastDetectTime = time.time()
         # low pass filter for ball location to reduce noise
         self.ballLocMap = [f*self.ballLocMap[0] + (1-f)*msg.x, f*self.ballLocMap[1] + (1-f)*msg.y]
-        
+
+
+    def Maplistener_callback(self, msg):
+        self.costmap_data = np.array(msg.data, dtype=np.int8)
+        self.costmap_data = self.costmap_data.reshape(msg.info.height, msg.info.width)
+        self.costmap_resolution = msg.info.resolution
+        self.costmap_origin = [msg.info.origin.position.x, msg.info.origin.position.y]
+
 
     def timer_callback(self):
         msg = Twist()
@@ -107,6 +127,8 @@ class PoopMove(Node):
                 self.goal_pose.pose.position.y = self.ballLocMap[1] - ballVecMapUnit[1]*self.navOffset
                 self.goal_pose.pose.orientation = goal_orientation
 
+                self.get_logger().info('Goal pose: {}'.format(self.goal_pose))
+
                 # send goal
                 self.nav.goToPose(self.goal_pose)
             
@@ -118,11 +140,46 @@ class PoopMove(Node):
             self.get_logger().info('Target lost')
             # cancel navigation if target is lost
             self.nav.cancelTask()
+            # If plannerFlag is true, enable planner
+            if self.plannerEnableFlag:
+                searchTarget = self.randomSearchPlanner()
+
+                self.plannerEnableFlag = False 
+
             
 
         
         
         self.publisher_.publish(msg)
+
+    def randomSearchPlanner(self):
+        self.get_logger().info('Planner enabled')
+        
+        low_cost_indices = np.argwhere(self.costmap_data < self.cost_threshold)
+        if len(low_cost_indices) < 4:
+            self.get_logger().warning('Less than 4 low-cost points found.')
+            return
+
+        selected_indices = random.sample(list(low_cost_indices), 4)
+        selected_points = np.array([[self.costmap_resolution* idx[1] + self.costmap_origin[0],
+                                    self.costmap_resolution* idx[0] + self.costmap_origin[1]] for idx in selected_indices]).T
+        # get robot position
+        try:
+            transform = self.tf_buffer.lookup_transform('map', 'base_footprint', rclpy.time.Time(), rclpy.duration.Duration(seconds=1.0))
+            robot_position = np.array([transform.transform.translation.x, transform.transform.translation.y])
+        except Exception as e:
+            self.get_logger().warning(f'Could not get robot position in search planner: {str(e)}')
+            return
+        distances = np.sqrt(np.sum((selected_points - robot_position.reshape(2, 1))**2, axis=0))
+        travel_times = distances  # assuming constant speed
+        ranked_indices = np.argsort(travel_times)
+        ranked_points = selected_points[:, ranked_indices]
+        self.get_logger().info(f'Search points: {ranked_points}')
+        return ranked_points
+    
+
+    
+
 
 def main(args=None):
     rclpy.init(args=args)
