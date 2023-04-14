@@ -92,12 +92,13 @@ class PoopMove(Node):
         self.costmap_origin = [msg.info.origin.position.x, msg.info.origin.position.y]
 
 
-    def timer_callback(self):
-        msg = Twist()
-        
+    def timer_callback(self):        
         # if detection time smaller than timeout, navigate to ball
         if (time.time() - self.lastDetectTime) < self.detectionTimeout: 
             self.get_logger().info('Detected')
+            # cancel current navigation task
+            self.nav.cancelTask()
+            self.plannerEnableFlag = True 
             # get transform from map to base_footprint
             baseTransform = self.nav.tf_buffer.lookup_transform('map', 'base_footprint', rclpy.time.now())
             baseLocMap = [baseTransform.transform.translation.x, baseTransform.transform.translation.y]
@@ -142,16 +143,15 @@ class PoopMove(Node):
             self.nav.cancelTask()
             # If plannerFlag is true, enable planner
             if self.plannerEnableFlag:
-                searchTarget = self.randomSearchPlanner()
+                self.get_logger().info('Planner enabled')
+                self.searchTarget = self.randomSearchPlanner()
+                # plan path to search targets
 
                 self.plannerEnableFlag = False 
-
-            
-
+            else:
+                self.get_logger().info('Planner disabled')
         
         
-        self.publisher_.publish(msg)
-
     def randomSearchPlanner(self):
         self.get_logger().info('Planner enabled')
         
@@ -177,6 +177,16 @@ class PoopMove(Node):
         self.get_logger().info(f'Search points: {ranked_points}')
         return ranked_points
     
+    def searchExecution(self):
+        searchTarget = self.searchTarget
+        for i in range(0,4):
+            self.goal_pose.header.stamp = self.nav.get_clock().now().to_msg()
+            self.goal_pose.pose.position.x = searchTarget[0,i]
+            self.goal_pose.pose.position.y = searchTarget[1,i]
+            self.goal_pose.pose.orientation = Quaternion()
+            self.nav.goToPose(self.goal_pose)
+            self.get_logger().info('Searching Goal pose: {}'.format(self.goal_pose))
+
 
     
 
