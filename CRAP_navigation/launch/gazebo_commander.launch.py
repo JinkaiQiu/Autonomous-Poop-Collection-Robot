@@ -15,11 +15,12 @@ def generate_launch_description():
     pkgShare_dir = launch_ros.substitutions.FindPackageShare(package='CRAP_navigation').find('CRAP_navigation')
 
     map_yaml_file = os.path.join(pkgShare_dir, 'maps', 'my_map_save.yaml')
+    nav_yaml_file = os.path.join(pkgShare_dir, 'config', 'nav2_params.yaml')
 
     bringup_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(nav2_bringup_dir, 'launch', 'bringup_launch.py')),
-        launch_arguments={'use_sim_time': 'true','map': map_yaml_file}.items())
+        launch_arguments={'use_sim_time': 'true', 'params_file': nav_yaml_file, 'map': map_yaml_file}.items())
     
     controller_cmd = Node(
         package='CRAP_navigation',
@@ -28,7 +29,9 @@ def generate_launch_description():
 
     test_cmd = Node(
         package='CRAP_navigation',
-        executable='test_controller',
+        # executable='test_controller',
+        # executable='random_searchig_test'
+        executable='test_random'
     )
 
     amcl_cmd = Node(

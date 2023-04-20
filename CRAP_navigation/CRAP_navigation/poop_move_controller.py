@@ -44,9 +44,6 @@ class PoopMove(Node):
         initial_pose.header.frame_id = 'map'
         initial_pose.header.stamp = self.nav.get_clock().now().to_msg()
 
-        self.goal_pose = PoseStamped()   
-        self.goal_pose.header.frame_id = 'map'
-
         # wait for transform from map to base_footprint
         self.get_logger().info('Waiting for transform from map to base_footprint')
         self.tf_buffer.wait_for_transform('base_footprint', 'map', rclpy.time(), rclpy.duration.Duration(seconds=30))
@@ -123,15 +120,17 @@ class PoopMove(Node):
                 goal_orientation.z = math.sin(yaw/2)
                 goal_orientation.w = math.cos(yaw/2)
 
-                self.goal_pose.header.stamp = self.nav.get_clock().now().to_msg()
-                self.goal_pose.pose.position.x = self.ballLocMap[0] - ballVecMapUnit[0]*self.navOffset
-                self.goal_pose.pose.position.y = self.ballLocMap[1] - ballVecMapUnit[1]*self.navOffset
-                self.goal_pose.pose.orientation = goal_orientation
+                goal_pose = PoseStamped()
+                goal_pose.header.frame_id = 'map'
+                goal_pose.header.stamp = self.nav.get_clock().now().to_msg()
+                goal_pose.pose.position.x = self.ballLocMap[0] - ballVecMapUnit[0]*self.navOffset
+                goal_pose.pose.position.y = self.ballLocMap[1] - ballVecMapUnit[1]*self.navOffset
+                goal_pose.pose.orientation = goal_orientation
 
-                self.get_logger().info('Goal pose: {}'.format(self.goal_pose))
+                self.get_logger().info('Goal pose: {}'.format(goal_pose))
 
                 # send goal
-                self.nav.goToPose(self.goal_pose)
+                self.nav.goToPose(goal_pose)
             
             else:
                 self.nav.cancelTask()
@@ -144,48 +143,16 @@ class PoopMove(Node):
             # If plannerFlag is true, enable planner
             if self.plannerEnableFlag:
                 self.get_logger().info('Planner enabled')
-                self.searchTarget = self.randomSearchPlanner()
-                # plan path to search targets
-
+                # plan path to search target
+                low_cost_indices = np.argwhere(self.costmap_data < self.cost_threshold)
+                if len(low_cost_indices) < 1:
+                    self.get_logger().error('No low-cost points found.')
+                selected_index = random.choice(low_cost_indices)
+                selected_point = np.array([[self.costmap_resolution* selected_index[1] + self.costmap_origin[0],
+                                            self.costmap_resolution* selected_index[0] + self.costmap_origin[1]]]).T
                 self.plannerEnableFlag = False 
             else:
                 self.get_logger().info('Planner disabled')
-        
-        
-    def randomSearchPlanner(self):
-        self.get_logger().info('Planner enabled')
-        
-        low_cost_indices = np.argwhere(self.costmap_data < self.cost_threshold)
-        if len(low_cost_indices) < 4:
-            self.get_logger().warning('Less than 4 low-cost points found.')
-            return
-
-        selected_indices = random.sample(list(low_cost_indices), 4)
-        selected_points = np.array([[self.costmap_resolution* idx[1] + self.costmap_origin[0],
-                                    self.costmap_resolution* idx[0] + self.costmap_origin[1]] for idx in selected_indices]).T
-        # get robot position
-        try:
-            transform = self.tf_buffer.lookup_transform('map', 'base_footprint', rclpy.time.Time(), rclpy.duration.Duration(seconds=1.0))
-            robot_position = np.array([transform.transform.translation.x, transform.transform.translation.y])
-        except Exception as e:
-            self.get_logger().warning(f'Could not get robot position in search planner: {str(e)}')
-            return
-        distances = np.sqrt(np.sum((selected_points - robot_position.reshape(2, 1))**2, axis=0))
-        travel_times = distances  # assuming constant speed
-        ranked_indices = np.argsort(travel_times)
-        ranked_points = selected_points[:, ranked_indices]
-        self.get_logger().info(f'Search points: {ranked_points}')
-        return ranked_points
-    
-    def searchExecution(self):
-        searchTarget = self.searchTarget
-        for i in range(0,4):
-            self.goal_pose.header.stamp = self.nav.get_clock().now().to_msg()
-            self.goal_pose.pose.position.x = searchTarget[0,i]
-            self.goal_pose.pose.position.y = searchTarget[1,i]
-            self.goal_pose.pose.orientation = Quaternion()
-            self.nav.goToPose(self.goal_pose)
-            self.get_logger().info('Searching Goal pose: {}'.format(self.goal_pose))
 
 
     

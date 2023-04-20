@@ -26,6 +26,8 @@ setup(
     entry_points={
         'console_scripts': [
         'test_controller = CRAP_navigation.test_controller:main',
+        'test_random = CRAP_navigation.test_random:main',
+        'random_searchig_test = CRAP_navigation.random_searchig_test:main',
         ],
     },
 )
