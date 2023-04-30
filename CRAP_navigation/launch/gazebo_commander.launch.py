@@ -31,7 +31,13 @@ def generate_launch_description():
         package='CRAP_navigation',
         # executable='test_controller',
         # executable='random_searchig_test'
-        executable='test_random'
+        # executable='test_random'
+        executable='test_found'
+    )
+
+    fake_ball = Node(
+        package='CRAP_navigation',
+        executable='fake_ball_publisher'
     )
 
     amcl_cmd = Node(
@@ -42,11 +48,13 @@ def generate_launch_description():
         )
 
     test_cmd_delayed = TimerAction(period=5.0, actions=[test_cmd])
+    fake_ball_delayed = TimerAction(period=5.0, actions=[fake_ball])
 
     ld = LaunchDescription()
     ld.add_action(bringup_cmd)
     # ld.add_action(controller_cmd)
     ld.add_action(test_cmd)
+    # ld.add_action(fake_ball)
     # ld.add_action(amcl_cmd)
 
     return ld

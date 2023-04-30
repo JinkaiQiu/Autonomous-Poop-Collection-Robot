@@ -12,7 +12,8 @@ from rclpy.node import Node
 from tf2_ros import Buffer, TransformListener
 from nav2_msgs.action import ComputePathToPose
 from action_msgs.msg import GoalStatus
-
+from nav2_msgs.srv import IsPathValid
+from math import sin, cos, pi
 
 
 class PoopMove(Node):
@@ -25,7 +26,7 @@ class PoopMove(Node):
 
 
         # create timer
-        timer_period = 1
+        timer_period = 1.5
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.lastDetectTime = time.time() - 10000;
         self.detectionTimeout = 2
@@ -36,8 +37,12 @@ class PoopMove(Node):
 
         # initialize 
         self.nav = BasicNavigator()
+        self.get_logger().info('PoopMove initialized, navigation lifecycle started')
+        time.sleep(1)
+
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.get_logger().info('Tf buffer and listener initialized')
         
         self.costmap_data = None
         self.costmap_origin = None
@@ -72,6 +77,7 @@ class PoopMove(Node):
              '/global_costmap/costmap',
              self.Maplistener_callback,
              10)
+        self.get_logger().info('Cost map subscriber created')
 
         # set iteration flag
         self.plannerEnableFlag = True
@@ -104,7 +110,17 @@ class PoopMove(Node):
                 goal_pose.header.stamp = self.nav.get_clock().now().to_msg()
                 goal_pose.pose.position.x = float(selected_point[0])
                 goal_pose.pose.position.y = float(selected_point[1])        
-                
+                theta = 2 * pi * random.random()
+                q = Quaternion()
+                q.w = cos(theta / 2)
+                q.x = 0.0
+                q.y = 0.0
+                q.z = sin(theta / 2)
+                goal_pose.pose.orientation = q
+
+                # publish goal pose
+                self.goalPose_pub.publish(goal_pose)
+
                 status = self.nav.goToPose(goal_pose)
 
                 # if path is None:
@@ -132,7 +148,7 @@ class PoopMove(Node):
         self.costmap_data = self.costmap_data.reshape(msg.info.height, msg.info.width)
         self.costmap_resolution = msg.info.resolution
         self.costmap_origin = [msg.info.origin.position.x, msg.info.origin.position.y]
-        self.get_logger().info('Map received')
+        # self.get_logger().info('Map received')
 
 
     def findRobot (self):
@@ -141,6 +157,25 @@ class PoopMove(Node):
         baseLocMap = [baseTransform.transform.translation.x, baseTransform.transform.translation.y]
         return baseLocMap
     
+    def get_robot_pose(self):
+        try:
+            # Get the transform from the map frame to the robot's frame
+            transform = self.tf_buffer.lookup_transform('map', 'base_link', rclpy.time.Time())
+            
+            # Create a PoseStamped message
+            pose = PoseStamped()
+            pose.header.stamp = self.get_clock().now().to_msg()
+            pose.header.frame_id = 'map'
+            pose.pose.position.x = transform.transform.translation.x
+            pose.pose.position.y = transform.transform.translation.y
+            pose.pose.position.z = transform.transform.translation.z
+            pose.pose.orientation = transform.transform.rotation
+
+            return pose
+        except Exception as e:
+            self.get_logger().error('Failed to get robot pose: {}'.format(e))
+            return None
+
 
 def main(args=None):
     rclpy.init(args=args)
