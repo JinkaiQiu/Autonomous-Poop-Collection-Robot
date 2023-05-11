@@ -40,15 +40,15 @@ def generate_launch_description():
         executable='fake_ball_publisher'
     )
 
-    amcl_cmd = Node(
-        package='nav2_amcl',
-        executable='amcl',
-        output='screen',
-        parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time'),}]
-        )
+    # amcl_cmd = Node(
+    #     package='nav2_amcl',
+    #     executable='amcl',
+    #     output='screen',
+    #     parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time'),}]
+    #     )
 
-    test_cmd_delayed = TimerAction(period=5.0, actions=[test_cmd])
-    fake_ball_delayed = TimerAction(period=5.0, actions=[fake_ball])
+    # test_cmd_delayed = TimerAction(period=5.0, actions=[test_cmd])
+    # fake_ball_delayed = TimerAction(period=5.0, actions=[fake_ball])
 
     ld = LaunchDescription()
     ld.add_action(bringup_cmd)
