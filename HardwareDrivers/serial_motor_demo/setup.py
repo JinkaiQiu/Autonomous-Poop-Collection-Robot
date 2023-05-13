@@ -1,4 +1,6 @@
 from setuptools import setup
+import os
+from glob import glob
 
 package_name = 'serial_motor_demo'
 
@@ -10,6 +12,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        # ('share/' + package_name + '/action', ['action/Enable.action']),
+        (os.path.join('share', package_name, 'action'), glob(os.path.join('action', '*.*'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -21,7 +25,8 @@ setup(
     entry_points={
         'console_scripts': [
             'gui = serial_motor_demo.gui:main',
-            'driver = serial_motor_demo.driver:main'
+            'driver = serial_motor_demo.driver:main',
+            'poop_action_server = serial_motor_demo.poop_action_server:main'
         ],
     },
 )
