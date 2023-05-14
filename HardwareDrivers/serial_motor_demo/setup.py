@@ -26,7 +26,7 @@ setup(
         'console_scripts': [
             'gui = serial_motor_demo.gui:main',
             'driver = serial_motor_demo.driver:main',
-            'poop_action_server = serial_motor_demo.poop_action_server:main'
+            'pooping_action_server = serial_motor_demo.pooping_action_server:main'
         ],
     },
 )

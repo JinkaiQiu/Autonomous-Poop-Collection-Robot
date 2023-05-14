@@ -14,7 +14,8 @@ from nav2_msgs.action import ComputePathToPose
 from action_msgs.msg import GoalStatus
 from nav2_msgs.srv import IsPathValid
 from math import sin, cos, pi
-
+from rclpy.action import ActionClient
+from serial_motor_demo_msgs.action import Collect
 
 class PoopMove(Node):
 
@@ -39,6 +40,8 @@ class PoopMove(Node):
         self.nav = BasicNavigator()
         self.get_logger().info('PoopMove initialized, navigation lifecycle started')
         time.sleep(1)
+
+        self.poopCollect = ActionClient(self, Collect, 'collect_poop')
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -75,16 +78,18 @@ class PoopMove(Node):
             10)
         self.get_logger().info('Ball location subscriber created')
         
-        self.plannerEnabled = True
+        self.notArrived = True
 
         self.firstTimePlan = True
-        self.firstTimeSucc = True
+        # self.firstTimeSucc = True
+        self.firstTimeAction = True
+        self.collected = False
 
     def timer_callback(self):
         # if detection time smaller than timeout, navigate to ball
         if (time.time() - self.lastDetectTime) < self.detectionTimeout: 
             self.get_logger().info('Detected')
-            if self.plannerEnabled:
+            if self.notArrived:
                 # cancel current navigation task
                 if self.firstTimePlan:
                     self.nav.cancelTask()
@@ -129,20 +134,51 @@ class PoopMove(Node):
             
                 else:
                     self.get_logger().info('Task Succeed')
-                    if self.firstTimeSucc:
-                        self.nav.cancelTask()
-                        self.firstTimeSucc = False
-                    self.plannerEnabled = False
-                    # self.get_logger().info('Stopped')
+                    # if self.firstTimeSucc:
+                    self.nav.cancelTask()
+                     #   self.firstTimeSucc = False
+                    self.notArrived = False
             else:
-                self.get_logger().info('Planner Disabled')
-                # Run grabbing action      
+                self.get_logger().info('Arrived, grabbing enabled')
+                # Run grabbing action
+                if self.firstTimeAction:
+                    self.send_goal()
+                    self.firstTimeAction = False
+                if self.collected:
+                    self.get_logger().info('Grabbing complete')
+                    self.notArrived = True
+                    self.firstTimePlan = True
+                    self.firstTimeAction = True
+                else:
+                    self.get_logger().info('Grabbing in progress')
+
         else: # if detection time larger than timeout, stop navigation, search for ball
             self.get_logger().info('Target lost')
             # self.nav.spin()
-            self.plannerEnabled = True
+            self.notArrived = True
             self.firstTimePlan = True
-            self.firstTimeSucc = True
+            # self.firstTimeSucc = True
+
+    
+    def send_goal(self):
+        self.poopCollect.wait_for_server()
+        goal_msg = Collect.Goal()
+        goal_msg.command = 'enable'
+        self.send_goal_future = self.poopCollect.send_goal_async(goal_msg)
+        self.send_goal_future.add_done_callback(self.goal_response_callback)
+
+    def goal_response_callback(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().info('Goal rejected')
+            return
+        self.get_logger().info('Goal accepted')
+        self.get_result_future = goal_handle.get_result_async()
+        self.get_result_future.add_done_callback(self.get_result_callback)
+    
+    def get_result_callback(self, future):
+        result = future.result().result
+        self.collected = result.success
 
     def BallLoclistener_callback(self, msg):
         f = 0.5 # filter coefficient

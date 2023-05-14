@@ -28,6 +28,7 @@ setup(
         'test_controller = CRAP_navigation.test_controller:main',
         'test_random = CRAP_navigation.test_random:main',
         'test_found = CRAP_navigation.test_found:main',
+        'test_bucketAction = CRAP_navigation.test_bucketAction:main',
         'fake_ball_publisher = CRAP_navigation.fake_ball_publisher:main',
         # 'random_searchig_test = CRAP_navigation.random_searchig_test:main',
         ],

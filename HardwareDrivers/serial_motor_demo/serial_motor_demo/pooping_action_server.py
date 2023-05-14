@@ -2,7 +2,7 @@ import rclpy
 from rclpy.action import ActionServer
 from rclpy.node import Node
 from std_msgs.msg import String
-from serial_motor_demo.action import Collect
+from serial_motor_demo_msgs.action import Collect
 import serial
 import time
 
@@ -29,25 +29,25 @@ class PoopCollectionActionServer(Node):
         msg.data = "enable"
         self.ser.write(msg.data.encode())
         result = Collect.Result()
-        
-        start_time = time.time()
-        timeout = 60  # Timeout after 30 seconds
-
+        result.success = False
+        # start_time = time.time()
+        # timeout = 60  # Timeout after 30 seconds
         while result.success == False:
-            if time.time() - start_time > timeout:
-                result.success = False
-                self.get_logger().info('Action timed out.')
-                break
+            # if time.time() - start_time > timeout:
+            #     result.success = False
+            #     self.get_logger().info('Action timed out.')
+            #     break
 
             if self.ser.in_waiting > 0:
                 line = self.ser.readline().decode('utf-8').rstrip()
+                self.get_logger().info(f'Arduino Sent: {line}')
                 if line == "complete":
                     result.success = True
+                    self.get_logger().info('Arduino Action Completed')
                     break
-                else:
-                    self.get_logger().info(f'Received: {line}')
 
-        goal_handle.succeed(result)
+
+        goal_handle.succeed()
 
         return result
 
