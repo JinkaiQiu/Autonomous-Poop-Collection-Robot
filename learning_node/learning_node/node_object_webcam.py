@@ -8,12 +8,11 @@
 
 import rclpy                            # ROS2 Python接口库
 from rclpy.node import Node             # ROS2 节点类
-
 import cv2                              # OpenCV图像处理库
 import numpy as np                      # Python数值计算库
 
-lower_brown = np.array([0, 30, 70])     # Poop的HSV阈值下限
-upper_brown = np.array([40, 225, 180])  # Poop的HSV阈值上限
+lower_brown = np.array([10, 50, 60])    # Poop的HSV阈值下限
+upper_brown = np.array([40, 225, 255])  # Poop的HSV阈值上限
 
 def object_detect(image):
     hsv_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)                       # 图像从BGR颜色模型转换为HSV模型
@@ -47,4 +46,4 @@ def main(args=None):                                                       # ROS
             object_detect(image)          # 苹果检测
         
     node.destroy_node()                  # 销毁节点对象
-    rclpy.shutdown()                     # 关闭ROS2 Python接口
+    rclpy.shutdown()                     # 关闭ROS2 Python接

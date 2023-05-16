@@ -25,6 +25,7 @@ setup(
          'node_object_webcam     = learning_node.node_object_webcam:main',
          'node_object_webcam_1pp     = learning_node.node_object_webcam_1pp:main',
          'node_object_1pp           = learning_node.node_object_1pp:main',
+         'node_webcam_1pp_shape = learning_node.node_webcam_1pp_shape:main',
         ],
     },
 )
