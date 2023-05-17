@@ -6,7 +6,8 @@ import rclpy
 from geometry_msgs.msg import (Point, PoseStamped, Quaternion,PointStamped,
                                Twist)
 from nav_msgs.msg import OccupancyGrid
-from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+# from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+from robot_navigator import BasicNavigator, TaskResult
 from rclpy.duration import Duration
 from rclpy.node import Node
 from tf2_ros import Buffer, TransformListener
