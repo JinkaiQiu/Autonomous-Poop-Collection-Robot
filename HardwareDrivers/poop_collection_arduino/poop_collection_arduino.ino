@@ -34,7 +34,7 @@ void loop() {
       digitalWrite(MOTOR2_IN1, HIGH);
       digitalWrite(MOTOR2_IN2, LOW);
       
-      while (digitalRead(SWITCH1_PIN) == HIGH) {}
+      while (digitalRead(SWITCH1_PIN) == LOW) {}
       // Stop the first and second motor on first switch 
       Serial.println("Bucket Lowered!!");
       digitalWrite(MOTOR1_IN1, LOW);
@@ -60,7 +60,7 @@ void loop() {
       digitalWrite(MOTOR2_IN1, LOW);
       digitalWrite(MOTOR2_IN2, HIGH);
       
-      while (digitalRead(SWITCH2_PIN) == HIGH) {}
+      while (digitalRead(SWITCH2_PIN) == LOW) {}
       Serial.println("Bucket Reversed !!");
       // Stop the first motor
       digitalWrite(MOTOR1_IN1, LOW);
@@ -72,7 +72,7 @@ void loop() {
       Serial.println("complete");
     }
     else {
-      Serial.println("Invalid Command")
+      Serial.println("Invalid Command");
     }
   }
 }

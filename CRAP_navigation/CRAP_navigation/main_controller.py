@@ -6,8 +6,8 @@ import rclpy
 from geometry_msgs.msg import (Point, PoseStamped, Quaternion,PointStamped,
                                Twist)
 from nav_msgs.msg import OccupancyGrid
-# from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
-from robot_navigator import BasicNavigator, TaskResult
+from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+# from CRAP_navigation.robot_navigator import BasicNavigator, TaskResult
 from rclpy.duration import Duration
 from rclpy.node import Node
 from tf2_ros import Buffer, TransformListener
@@ -87,8 +87,12 @@ class crap_main_controller (Node):
 	################################################################################################################
 	# main logic control function
 	def timer_callback(self):
-		if not self.callback_lock.acquire(blocking=False):
-			self.get_logger().warn('Callback lock is held, skipping callback')
+		# if not self.callback_lock.acquire(blocking=False):
+		# 	self.get_logger().warn('Callback lock is held, skipping callback')
+		# 	return
+
+		if self.costmap_data is None:
+			self.get_logger().warn('No costmap data, skipping callback')
 			return
 
 		try:
@@ -120,10 +124,10 @@ class crap_main_controller (Node):
 						return
 					else:
 						self.get_logger().info('Initial capturing pose reached!')
-						refreshingNeeded = False # no need to refresh goal pose anymore 
+						self.refreshingNeeded = False # no need to refresh goal pose anymore 
 						
 						# if need to tune distance, add here
-						self.nav.driveonheading(drive_dist=0.15)
+						self.nav.backup(backup_dist=-0.2,backup_speed=0.2)
 						
 						self.forwarded = True
 				else: 
@@ -149,7 +153,7 @@ class crap_main_controller (Node):
 				if self.collected:
 					self.get_logger().info('Poop collected')
 					if not self.navigationInProgress:
-						self.nav.backup(backup_dist=0.5)
+						self.nav.backup(backup_dist=0.3,backup_speed=0.2,time_allowance=10)
 						self.navigationInProgress = True
 						self.get_logger().info('Start to backup to check')
 						return
@@ -161,6 +165,8 @@ class crap_main_controller (Node):
 							self.grabbingInProgress = False
 							self.collected = False
 							self.detectedTimes = 0
+							#added
+							self.navigationInProgress = False
 						else:
 							self.get_logger().info('Backing up ...')
 
@@ -171,7 +177,7 @@ class crap_main_controller (Node):
 				if not self.navigationInProgress:
 					self.nav.cancelTask()
 					goalPose = self.goToRandomPointInCostmap()
-					if goal_pose is None :
+					if goalPose is None :
 						self.get_logger().error('No low-cost points found.')
 						return
 					self.navigationInProgress = True
@@ -179,11 +185,11 @@ class crap_main_controller (Node):
 				else:
 					self.getNavigationFeedbackAndCheck()
 		finally:
-			self.callback_lock.release()
-			self.get_logger().info('Callback lock released, exiting callback')
+			# self.callback_lock.release()
+			self.get_logger().info('__________________________________')
 	################################################################################################################
 	
-	def initial_pose_set(self,x= 0.01,y = 0.01,z = 0.0,w = 1):
+	def initial_pose_set(self,x= 0.01,y = 0.01,z = 0.0,w = 0.1):
 		try:
 			initial_pose = PoseStamped()
 			initial_pose.header.frame_id = 'map'
@@ -236,7 +242,7 @@ class crap_main_controller (Node):
 			# self.get_logger().info('Map received')
 
 	# generate random points in costmap
-	def goToRandomPointInCostmap(self,threshold = 10):
+	def goToRandomPointInCostmap(self,threshold = 10,distance_threshold = 1):
 		low_cost_indices = np.argwhere(self.costmap_data < threshold)
 		if len(low_cost_indices) < 1:
 			self.get_logger().error('No low-cost points found.')
@@ -245,7 +251,14 @@ class crap_main_controller (Node):
 		while not reachable:
 			selected_index = random.choice(low_cost_indices)
 			selected_point = np.array([self.costmap_resolution* selected_index[1] + self.costmap_origin[0],
-									self.costmap_resolution* selected_index[0] + self.costmap_origin[1]])			
+									self.costmap_resolution* selected_index[0] + self.costmap_origin[1]])		
+			
+			baseLocMap = self.findRobot()
+			distance = np.sqrt((baseLocMap[0] - selected_point[0])**2 + (baseLocMap[1] - selected_point[1])**2)
+			if distance < distance_threshold:
+				self.get_logger().info('Selected point too close to robot, retrying')
+				continue
+
 			goal_pose = PoseStamped()
 			goal_pose.header.frame_id = 'map'
 			goal_pose.header.stamp = self.nav.get_clock().now().to_msg()
@@ -294,6 +307,9 @@ class crap_main_controller (Node):
 			return result
 		else:
 			self.get_logger().info('Navigating ...')
+			# find robot position and log
+			baseLocMap = self.findRobot()
+			self.get_logger().info('Robot location: {}'.format(baseLocMap))
 			return False
 		
 	def refreshNavigationGoal(self, goal_pose):
@@ -311,8 +327,8 @@ class crap_main_controller (Node):
 		# position 
 		baseLocMap = self.findRobot()
 		ballVecMap = np.array([self.ballLocMap[0] - baseLocMap[0], self.ballLocMap[1] - baseLocMap[1]])
-		ballVecMapUnit = ballVecMap/np.linalg.norm(ballVecMap)    
 		ballVecLen = np.linalg.norm(ballVecMap)
+		ballVecMapUnit = ballVecMap/ballVecLen  
 		navTargetVecMap = ballVecMapUnit * (ballVecLen - target_offset)
 
 		# orientation
@@ -328,8 +344,8 @@ class crap_main_controller (Node):
 		goal_pose.header.frame_id = 'map'
 		goal_pose.header.stamp = self.nav.get_clock().now().to_msg()
 		goal_pose.pose.orientation = goal_orientation
-		goal_pose.pose.position.x = navTargetVecMap[0]
-		goal_pose.pose.position.y = navTargetVecMap[1]
+		goal_pose.pose.position.x = baseLocMap[0] + navTargetVecMap[0]
+		goal_pose.pose.position.y = baseLocMap[1] + navTargetVecMap[1]
 
 		return goal_pose
 	

@@ -9,7 +9,8 @@ def generate_launch_description():
     pkg_share = launch_ros.substitutions.FindPackageShare(package='CRAP_sim_def').find('CRAP_sim_def')
     default_model_path = os.path.join(pkg_share, 'urdf/CRAP.xacro')
     default_rviz_config_path = os.path.join(pkg_share, 'rviz/urdf.rviz')
-    world_file_path = 'worlds/TestRoom.world'
+    world_file_path = 'worlds/largerRoom.world'
+    # world_file_path = 'worlds/TestRoom.world'
     world_path=os.path.join(pkg_share, world_file_path),
 
     robot_state_publisher_node = launch_ros.actions.Node(
@@ -60,6 +61,7 @@ def generate_launch_description():
     rviz_node_delayed = TimerAction(period=2.0, actions=[rviz_node])
     robot_state_publisher_node_delayed = TimerAction(period=2.0, actions=[robot_state_publisher_node])
     joint_broad_spawner_delayed = TimerAction(period=5.0, actions=[joint_broad_spawner])
+    spawn_entity_delayed = TimerAction(period=3.0, actions=[spawn_entity])
 
     return launch.LaunchDescription([
         launch.actions.DeclareLaunchArgument(name='use_sim_time', default_value='True',

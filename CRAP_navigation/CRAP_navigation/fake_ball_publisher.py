@@ -13,8 +13,8 @@ class BallPublisher(Node):
         ball_msg = PointStamped()
         ball_msg.header.frame_id = "map"
         ball_msg.header.stamp = self.get_clock().now().to_msg()
-        ball_msg.point.x = -2.0 + random.uniform(-0.1, 0.1) # Add randomized noise to x coordinate
-        ball_msg.point.y = -3.0 + random.uniform(-0.1, 0.1) # Add randomized noise to y coordinate
+        ball_msg.point.x = 3.5 + random.uniform(-0.1, 0.1) # Add randomized noise to x coordinate
+        ball_msg.point.y = -4.5 + random.uniform(-0.1, 0.1) # Add randomized noise to y coordinate
         ball_msg.point.z = 0.0
         self.publisher_.publish(ball_msg)
 
