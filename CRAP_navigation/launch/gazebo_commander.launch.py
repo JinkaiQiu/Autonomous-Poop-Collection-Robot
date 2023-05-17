@@ -14,31 +14,40 @@ def generate_launch_description():
     python_commander_dir = get_package_share_directory('nav2_simple_commander')
     pkgShare_dir = launch_ros.substitutions.FindPackageShare(package='CRAP_navigation').find('CRAP_navigation')
 
-    map_yaml_file = os.path.join(pkgShare_dir, 'maps', 'my_map_save.yaml')
+    # map_yaml_file = os.path.join(pkgShare_dir, 'maps', 'my_map_save.yaml')
+    map_yaml_file = os.path.join(pkgShare_dir, 'maps', 'biggerMAP.yaml')
     nav_yaml_file = os.path.join(pkgShare_dir, 'config', 'nav2_params.yaml')
 
     bringup_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(nav2_bringup_dir, 'launch', 'bringup_launch.py')),
-        launch_arguments={'use_sim_time': 'true', 'params_file': nav_yaml_file, 'map': map_yaml_file}.items())
+        launch_arguments={'slam': 'False','use_sim_time': 'true', 'params_file': nav_yaml_file, 'map': map_yaml_file}.items())
     
     controller_cmd = Node(
         package='CRAP_navigation',
         executable='poop_move_controller',
     )
-
+    
     test_cmd = Node(
         package='CRAP_navigation',
         # executable='test_controller',
         # executable='random_searchig_test'
         # executable='test_random'
-        executable='test_found'
+        executable='main_controller'
+    )
+
+
+    grab_action_cmd = Node(
+        package='serial_motor_demo',
+        executable='pooping_action_server',
     )
 
     fake_ball = Node(
         package='CRAP_navigation',
         executable='fake_ball_publisher'
     )
+
+
 
     # amcl_cmd = Node(
     #     package='nav2_amcl',
@@ -47,11 +56,12 @@ def generate_launch_description():
     #     parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time'),}]
     #     )
 
-    # test_cmd_delayed = TimerAction(period=5.0, actions=[test_cmd])
+    test_cmd_delayed = TimerAction(period=5.0, actions=[test_cmd])
     # fake_ball_delayed = TimerAction(period=5.0, actions=[fake_ball])
 
     ld = LaunchDescription()
     ld.add_action(bringup_cmd)
+    ld.add_action(grab_action_cmd)
     # ld.add_action(controller_cmd)
     ld.add_action(test_cmd)
     # ld.add_action(fake_ball)
