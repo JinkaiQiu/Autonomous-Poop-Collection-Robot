@@ -8,10 +8,6 @@
 # -*- coding: utf-8 -*-
 
 
-"""
-@作者: 古月居(www.guyuehome.com)
-@说明: ROS2节点示例-通过摄像头识别检测图片中出现的苹果
-"""
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
