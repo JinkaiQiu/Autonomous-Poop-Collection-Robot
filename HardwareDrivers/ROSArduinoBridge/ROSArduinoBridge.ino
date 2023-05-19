@@ -63,8 +63,8 @@
    #define ARDUINO_ENC_COUNTER
 
    /* L298 Motor driver*/
-   // #define L298_MOTOR_DRIVER
-   #define POLOLUG2
+   #define L298_MOTOR_DRIVER
+  //  #define POLOLUG2
 #endif
 
 //#define USE_SERVOS  // Enable use of PWM servos as defined in servos.h
