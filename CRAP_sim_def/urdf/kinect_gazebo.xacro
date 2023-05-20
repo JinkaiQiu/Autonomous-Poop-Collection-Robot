@@ -18,6 +18,7 @@
             </collision>
         </link>
 
+        <!-- location of the kinect relative to base -->
         <joint name="${prefix}_joint" type="fixed">
             <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
             <parent link="${parent}"/>
@@ -26,10 +27,20 @@
 
         <link name="${prefix}_depth_frame"/>
 
+        <!-- location of the depth camera relative to kinect frame -->
         <joint name="${prefix}_depth_joint" type="fixed">
             <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
             <parent link="${prefix}_link"/>
             <child link="${prefix}_depth_frame"/>
+        </joint>
+
+        <link name="${prefix}_rgb_frame"/>
+
+        <!-- location of the rgb frame relative to kinect frame -->
+        <joint name="${prefix}_rgb_joint" type="fixed">
+            <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+            <parent link="${prefix}_link"/>
+            <child link="${prefix}_rgb_frame"/>
         </joint>
 
         <gazebo reference="${prefix}_link">

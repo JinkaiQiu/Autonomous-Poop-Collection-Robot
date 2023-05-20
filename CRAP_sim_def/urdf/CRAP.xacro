@@ -75,7 +75,7 @@
 
   <!-- Define the rgbd camera -->
   <xacro:include filename="kinect_gazebo.xacro"/>
-  <xacro:kinect_camera prefix="kinect" parent="base_link" x="0.27" y="0" z="0"/>
+  <xacro:kinect_camera prefix="kinect2" parent="base_link" x="0.27" y="0" z="0"/>
   
   <!-- Define the imu camera -->
   <xacro:include filename="imu.xacro"/>
