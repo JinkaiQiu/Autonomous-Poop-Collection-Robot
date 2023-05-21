@@ -6,13 +6,27 @@ import time
 from launch.actions import TimerAction
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessStart
+from ament_index_python.packages import get_package_share_directory
+from launch_ros.actions import LifecycleNode
+
+
 
 def generate_launch_description():
     pkg_share = launch_ros.substitutions.FindPackageShare(package='CRAP_sim_def').find('CRAP_sim_def')
-    default_model_path = os.path.join(pkg_share, 'urdf/CRAP.xacro')
+    default_model_path = os.path.join(pkg_share, 'urdf/CRAP_actual.xacro')
     default_rviz_config_path = os.path.join(pkg_share, 'rviz/urdf.rviz')
-    world_file_path = 'worlds/TestRoom.world'
-    world_path=os.path.join(pkg_share, world_file_path),
+    
+    share_dir = get_package_share_directory('ydlidar_ros2_driver')
+    lidar_parameter_file = LaunchConfiguration('lidar_params_file')
+
+    driver_node = LifecycleNode(package='ydlidar_ros2_driver',
+                            node_executable='ydlidar_ros2_driver_node',
+                            node_name='ydlidar_ros2_driver_node',
+                            output='screen',
+                            emulate_tty=True,
+                            parameters=[lidar_parameter_file],
+                            node_namespace='/',
+                            )
 
     robot_state_publisher_node = launch_ros.actions.Node(
         package='robot_state_publisher',
@@ -81,11 +95,17 @@ def generate_launch_description():
                                             description='Flag to enable use_sim_time'),
         launch.actions.DeclareLaunchArgument(name='model', default_value=default_model_path,
                                             description='Absolute path to robot urdf file'),
+        launch.actions.DeclareLaunchArgument('lidar_params_file',
+                                           default_value=os.path.join(
+                                            share_dir, 'params', 'X3.yaml'),
+                                           description='FPath to the ROS2 parameters file to use.'),
+
         robot_state_publisher_node,
         controller_manager_delayed,
         diff_drive_spawner_delayed,
         joint_broad_spawner_delayed,
-        
+        driver_node,
+
         launch.actions.DeclareLaunchArgument(name='rvizconfig', default_value=default_rviz_config_path,
                                     description='Absolute path to rviz config file'),
         rviz_node_delayed,
