@@ -79,6 +79,6 @@
 
   <!-- Define ROS2 control -->
   <xacro:include filename="ros2_control_real.xacro"/>
-  <xacro:diffbot_ros2_control name="DiffBot" prefix="rear_" />
+  <xacro:diffbot_ros2_control name="DiffBot"/>
 
 </robot>
