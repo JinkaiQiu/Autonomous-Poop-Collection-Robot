@@ -15,12 +15,11 @@ from cv_bridge import CvBridge, CvBridgeError
 import tf2_ros
 import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped
+from builtin_interfaces.msg import Time
+
 
 import rclpy                            # ROS2 Python接口库
 from rclpy.node import Node             # ROS2 节点类
-from rclpy.time import Time
-from rclpy.duration import Duration
-
 
 import cv2                              # OpenCV图像处理库
 import numpy as np                      # Python数值计算库
@@ -71,6 +70,7 @@ class PoopDetectorNode(Node):
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
+
     def image_callback(self, msg):
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -79,21 +79,14 @@ class PoopDetectorNode(Node):
             print(e)
             return
         
-        if self.depth_image is None:
-            self.get_logger().warn('Depth image is None. Cannot find object.')
-            return
-        
-        bounding_box = self.find_object(cv_image)
-        if bounding_box is None:
-            self.get_logger().warn('No bounding box found. The object might not be in the scene.')
-            return
-
-        world_coords = self.convert_to_world_coordinates(self.depth_image, bounding_box)
-        if world_coords is None:
-            self.get_logger().warn('Failed to convert to world coordinates. Check your transformation.')
-            return
-
-        self.get_logger().info(f"World Coordinates: {world_coords}")
+        if self.depth_image is not None:
+            bounding_box = self.find_object(cv_image)
+            if bounding_box is not None:
+                world_coords = self.convert_to_world_coordinates(self.depth_image, bounding_box)
+                if world_coords is not None:
+                    print(f"World Coordinates: {world_coords}")
+        # else:
+        #     print("Something wrong here")
 
 
     def depth_callback(self, msg):
@@ -175,8 +168,8 @@ class PoopDetectorNode(Node):
             try:
                 transform = self.tf_buffer.lookup_transform('map',  # target frame
                                                             'kinect2_ir_optical_frame',  # source frame
-                                                            rclpy.time.Time(),  # time
-                                                            rclpy.duration.Duration(seconds=1.0))  # timeout
+                                                            rclpy.time.Time.from_msg(point_camera_frame.header.stamp) , # Request time
+                                                            rclpy.duration.Duration(seconds=5.0))  # timeout
                 point_map_frame = tf2_geometry_msgs.do_transform_point(point_camera_frame, transform)
                 return (point_map_frame.point.x, point_map_frame.point.y, point_map_frame.point.z)
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as ex:
