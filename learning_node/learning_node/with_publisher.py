@@ -1,17 +1,12 @@
 # node_object_1pp.py
 
-# Description:
-# Detect the poop with the color filter
-# Get and transform the 3D coordinate
-# Publish the detected coordinates to the /poop_coordinates topic as PointStamped messages. 
+
+# Depth coordinate without the shape filter only the color filter
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Check list: 
-# 1. test the accuracy using rgb and infrared as the source frame. The necessary to use the manual calibration data
-# 2. the color adjustment--> drag thing
-# 3. dno't need to draw the contour later
+# Check list: test the accuracy using rgb and infrared as the source frame
 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
@@ -86,14 +81,14 @@ class PoopDetectorNode(Node):
             print(e)
             return
         
-        if self.depth_image is not None:
-            bounding_box = self.find_object(cv_image)
-            if bounding_box is not None:
-                self.convert_to_world_coordinates(self.depth_image, bounding_box)
-            else:
-                self.get_logger().info("No object found in image")
-        else:
-            self.get_logger().info("Depth image is not available ")
+        # if self.depth_image is not None:
+        #     bounding_box = self.find_object(cv_image)
+        #     if bounding_box is not None:
+        #         world_coords = self.convert_to_world_coordinates(self.depth_image, bounding_box)
+        #         if world_coords is not None:
+        #             print(f"World Coordinates: {world_coords}")
+        # else:
+        #     print("Something wrong here")
 
 
     def depth_callback(self, msg):
@@ -183,7 +178,7 @@ class PoopDetectorNode(Node):
                 #return (point_map_frame.point.x, point_map_frame.point.y, point_map_frame.point.z)
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as ex:
                 self.get_logger().warn('Transform lookup failed: %s' % ex)
-                #return None
+                # return None
 
 
 def main(args=None):
@@ -198,4 +193,3 @@ def main(args=None):
 
 if __name__ == "__main__":
    main()
-   

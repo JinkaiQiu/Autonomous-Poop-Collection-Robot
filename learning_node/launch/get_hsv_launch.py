@@ -15,22 +15,6 @@ def generate_launch_description():
             default_value='true',
             description='Use simulation/Gazebo clock'),
 
-        # Include CRAP_sim_def gazebo_display.launch.py
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(['src/CRAP_sim_def/launch/gazebo_display.launch.py']),
-            launch_arguments={
-                'use_sim_time': use_sim_time
-            }.items()
-        ),
-
-        # Include CRAP_navigation gazebo_slam.launch.py
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(['src/CRAP_navigation/launch/gazebo_slam.launch.py']),
-            launch_arguments={
-                'use_sim_time': use_sim_time
-            }.items()
-        ),
-        
         # Include kinect2_bridge kinect2_bridge.launch.py
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(['src/kinect2_ros2/kinect2_bridge/launch/kinect2_bridge.launch.py']),
@@ -40,11 +24,11 @@ def generate_launch_description():
             }.items(),
         ),
 
-        # # Node for learning_node node_object_1pp
-        # Node(
-        #     package='learning_node',
-        #     executable='node_object_1pp',
-        #     name='node_object_1pp',
-        #     parameters=[{'use_sim_time': use_sim_time}],
-        #     output='screen'),
+        # Node for learning_node node_object_1pp
+        Node(
+            package='learning_node',
+            executable='get_hsv',
+            name='get_hsv',
+            parameters=[{'use_sim_time': use_sim_time}],
+            output='screen'),
     ])
