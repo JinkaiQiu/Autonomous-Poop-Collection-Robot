@@ -127,8 +127,11 @@ class crap_main_controller (Node):
 						self.refreshingNeeded = False # no need to refresh goal pose anymore 
 						
 						# if need to tune distance, add here
-						self.nav.backup(backup_dist=-0.2,backup_speed=0.2)
+						# self.nav.backup(backup_dist=-0.2,backup_speed=0.2)
 						
+						goal_pose = self.getNavTargetToPoop(target_offset=-0.5)
+						self.refreshNavigationGoal(goal_pose)
+
 						self.forwarded = True
 				else: 
 					navReached = self.getNavigationFeedbackAndCheck()

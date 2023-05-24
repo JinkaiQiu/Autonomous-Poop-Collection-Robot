@@ -10,13 +10,16 @@ from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import LifecycleNode
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 
 def generate_launch_description():
+    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+
     # declare variables
     pkg_share = launch_ros.substitutions.FindPackageShare(package='CRAP_sim_def').find('CRAP_sim_def')
-    # default_model_path = os.path.join(pkg_share, 'urdf/CRAP_actual.xacro')
    
     # Rviz Node
     default_rviz_config_path = os.path.join(pkg_share, 'rviz/urdf.rviz')
@@ -26,7 +29,7 @@ def generate_launch_description():
         name='rviz2',
         output='screen',
         arguments=['-d', LaunchConfiguration('rvizconfig')],
-        parameters=[{'use_sim_time': False}]
+        parameters=[{'use_sim_time': use_sim_time}]
     )
 
     # Lidar Node
@@ -83,6 +86,24 @@ def generate_launch_description():
     )
 
 
+    # Kinect Node
+    kinect = launch_ros.actions.Node(
+        package='learning_node',
+        executable='node_object_1pp',
+        name='node_object_1pp',
+        parameters=[{'use_sim_time': use_sim_time}],
+        output='screen'),
+
+
+    # Twist mux node
+    pkg_share_nav = launch_ros.substitutions.FindPackageShare(package='CRAP_navigation').find('CRAP_navigation')
+    twist_mux_node = launch_ros.actions.Node(
+      package='twist_mux',
+      executable='twist_mux',
+      parameters= [os.path.join(pkg_share_nav, 'config/twist_mux.yaml')],
+      remappings=[('/cmd_vel_out','diff_cont/cmd_vel_unstamped')]
+   )
+
     # Delayed actions
     rviz_node_delayed = TimerAction(period=3.0, actions=[rviz_node])
 
@@ -93,13 +114,22 @@ def generate_launch_description():
         )
     )
 
+    kinect_delayed = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=joint_broad_spawner,
+            on_exit=[kinect],
+        )
+    )
+
+    
     return launch.LaunchDescription([   
         # launch lidar node
-        # launch.actions.DeclareLaunchArgument('lidar_params_file',
-        #                                    default_value=os.path.join(
-        #                                     share_dir, 'params', 'X3.yaml'),
-        #                                    description='FPath to the ROS2 parameters file to use.'),
-       #  lidar_driver_node,
+        
+        launch.actions.DeclareLaunchArgument('lidar_params_file',
+                                           default_value=os.path.join(
+                                            share_dir, 'params', 'X3.yaml'),
+                                           description='FPath to the ROS2 parameters file to use.'),
+        lidar_driver_node,
        
         # launch ros2 control nodes
         controller_manager,
@@ -107,8 +137,26 @@ def generate_launch_description():
         joint_broad_spawner,
         diff_drive_spawner_delayed,
 
+        # launch twist mux
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='false',
+            description='Use sim time if true'),
+        twist_mux_node,
+
         # launch rviz
         launch.actions.DeclareLaunchArgument(name='rvizconfig', default_value=default_rviz_config_path,
                                     description='Absolute path to rviz config file'),
-        # rviz_node_delayed,
+        rviz_node_delayed,
+
+        #launch kinect
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(['src/kinect2_ros2/kinect2_bridge/launch/kinect2_bridge.launch.py']),
+            launch_arguments={
+                'sensor': '008190334247',
+                'use_sim_time': use_sim_time
+            }.items(),
+        ),
+        kinect_delayed,
+
     ])
