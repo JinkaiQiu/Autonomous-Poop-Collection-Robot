@@ -20,8 +20,6 @@ from cv_bridge import CvBridge, CvBridgeError
 import tf2_ros
 import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped
-from builtin_interfaces.msg import Time
-
 
 import rclpy                            # ROS2 Python接口库
 from rclpy.node import Node             # ROS2 节点类
@@ -154,6 +152,12 @@ class PoopDetectorNode(Node):
 
             # apply the quadratic calibration to the depth data
             camera_read = depth_image[int(y+h/2), int(x+w/2)]
+
+            # check if the camera reading is a valid number (not zero)
+            if camera_read == 0:
+                self.get_logger().info('Invalid depth reading, ignoring...')
+                return
+            
             calibrated_depth = 0.0007415470919300713 * (camera_read**2) - 0.3236496146104614 * camera_read + 461.469635957998
 
             # convert to world coordinates
@@ -163,10 +167,10 @@ class PoopDetectorNode(Node):
             world_Y = (v - cy) * calibrated_depth / fy
             world_Z = calibrated_depth
 
-            # create a PointStamped message
+             # create a PointStamped message
             point_camera_frame = PointStamped()
             point_camera_frame.header.stamp = self.get_clock().now().to_msg()
-            point_camera_frame.header.frame_id = 'kinect2_ir_optical_frame'#'kinect2_rgb_optical_frame' 
+            point_camera_frame.header.frame_id = 'kinect2_link' #'kinect2_link'  # replace with your Kinect2 frame ID
             point_camera_frame.point.x = world_X
             point_camera_frame.point.y = world_Y
             point_camera_frame.point.z = world_Z
@@ -174,12 +178,12 @@ class PoopDetectorNode(Node):
             # transform the point to the map frame
             try:
                 transform = self.tf_buffer.lookup_transform('map',  # target frame
-                                                            'kinect2_ir_optical_frame',  # source frame
-                                                            rclpy.time.Time.from_msg(point_camera_frame.header.stamp),  # Request time
-                                                            rclpy.duration.Duration(seconds=5.0))  # timeout
+                                            'kinect2_link',  # source frame
+                                            rclpy.time.Time(),  # time
+                                            rclpy.duration.Duration(seconds=5.0))  # timeout
                 point_map_frame = tf2_geometry_msgs.do_transform_point(point_camera_frame, transform)
                 self.point_publisher.publish(point_map_frame)  # publish the point
-                self.get_logger().info('Publishing: "%s"' % point_map_frame.data) 
+                self.get_logger().info('Publishing: "%s"' % point_map_frame.point) 
                 #return (point_map_frame.point.x, point_map_frame.point.y, point_map_frame.point.z)
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as ex:
                 self.get_logger().warn('Transform lookup failed: %s' % ex)
