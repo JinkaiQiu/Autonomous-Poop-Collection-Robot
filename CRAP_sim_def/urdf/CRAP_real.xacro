@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="CRAP">
-  <xacro:property name="base_width" value="0.5"/>
-  <xacro:property name="base_length" value="0.5"/>
-  <xacro:property name="base_height" value="0.05"/>
+  <xacro:property name="base_width" value="0.265"/>
+  <xacro:property name="base_length" value="0.415"/>
+  <xacro:property name="base_height" value="0.18"/>
 
-  <xacro:property name="wheel_radius" value="0.05"/>
-  <xacro:property name="wheel_width" value="0.02"/>
+  <xacro:property name="wheel_radius" value="0.051"/>
+  <xacro:property name="wheel_width" value="0.025"/>
   <xacro:property name="wheel_ygap" value="0.025"/>
-  <xacro:property name="wheel_zoff" value="0.05"/>
+  <xacro:property name="wheel_zoff" value="${base_height/2}"/>
 
 
   <!-- Define the base link of the robot -->
@@ -30,7 +30,7 @@
 
     <collision>
       <geometry>
-          <box size="0.5 0.5 0.05"/>
+          <box size="0.5 0.5 ${base_height}"/>
       </geometry>
     </collision>
   </link>
@@ -62,20 +62,20 @@
 
   <!-- Define the four  wheels -->
   <xacro:include filename="wheel.xacro"/>
-  <xacro:wheel name="front_left_wheel" parent="base_link" x="0.25" y="0.25" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
-  <xacro:wheel name="front_right_wheel" parent="base_link" x="0.25" y="-0.25" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
+  <xacro:wheel name="front_left_wheel" parent="base_link" x="${base_length/2}" y="${(base_width+wheel_width)/2}" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
+  <xacro:wheel name="front_right_wheel" parent="base_link" x="${base_length/2}" y="${-(base_width+wheel_width)/2}" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
   
   <xacro:include filename="wheel_driven.xacro"/>
-  <xacro:wheel_driven name="rear_left_wheel" parent="base_link" x="-0.25" y="0.25" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
-  <xacro:wheel_driven name="rear_right_wheel" parent="base_link" x="-0.25" y="-0.25" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
+  <xacro:wheel_driven name="rear_left_wheel" parent="base_link" x="${-base_length/2}" y="${(base_width+wheel_width)/2}" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
+  <xacro:wheel_driven name="rear_right_wheel" parent="base_link" x="${-base_length/2}" y="${-(base_width+wheel_width)/2}" z = "${-wheel_zoff}" radius = "${wheel_radius}" thickness = "${wheel_width}"/>
 
   <!-- Define the LIDAR sensor -->
   <xacro:include filename="lidar_gazebo.xacro"/>
-  <xacro:rplidar prefix="lidar" parent="base_link" x="0.27" y="0" z="0.1"/>
+  <xacro:rplidar prefix="lidar" parent="base_link" x="0.205" y="0" z="${0.37-base_height/2}"/>
 
   <!-- Define the rgbd camera -->
   <xacro:include filename="kinect_gazebo.xacro"/>
-  <xacro:kinect_camera prefix="kinect2" parent="base_link" x="0.27" y="0" z="0"/>
+  <xacro:kinect_camera prefix="kinect2" parent="base_link" x="0.205" y="0" z="${0.26-base_height/2}"/>
 
   <!-- Define ROS2 control -->
   <xacro:include filename="ros2_control_real.xacro"/>

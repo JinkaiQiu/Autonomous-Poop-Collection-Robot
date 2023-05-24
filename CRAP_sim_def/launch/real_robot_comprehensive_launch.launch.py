@@ -43,7 +43,7 @@ def generate_launch_description():
                             )
 
     # ROS2 control nodes
-    controller_params_file = os.path.join(pkg_share,'config','diffbot_controllers.yaml')
+    controller_params_file = os.path.join(pkg_share,'config','real_controllers.yaml')
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
