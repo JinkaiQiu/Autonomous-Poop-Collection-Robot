@@ -3,11 +3,7 @@
 
 import cv2
 import numpy as np;
-import sys;
-import rclpy
-from rclpy.node import Node
-from cv_bridge import CvBridge
-from sensor_msgs.msg import Image
+import depthai as dai;
 
 def find_circles(image, tuning_params):
 
@@ -202,24 +198,30 @@ def no_op(x):
     pass
 
 
-class ImageSubscriber(Node):
+class ImageSubscriber:
     def __init__(self):
-        super().__init__('image_subscriber')
-        self.subscription = self.create_subscription(
-            Image,
-            '/kinect2/qhd/image_color_rect',
-            self.listener_callback,
-            10)
-        self.subscription  # prevent unused variable warning
-        self.bridge = CvBridge()
         self.image = None
+        self.pipeline = dai.Pipeline()
+        camRgb = self.pipeline.createColorCamera()
+        xoutRgb = self.pipeline.createXLinkOut()
 
-    def listener_callback(self, msg):
-        self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        xoutRgb.setStreamName("rgb")
+        camRgb.setPreviewSize(1080, 720)
+        camRgb.setBoardSocket(dai.CameraBoardSocket.RGB)
+        camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
+        camRgb.setInterleaved(False)
+        camRgb.preview.link(xoutRgb.input)
+
+        self.device = dai.Device(self.pipeline)
+
+        # Create queues
+        self.qRgb = self.device.getOutputQueue("rgb", 4, False)
+
+    def listener_callback(self):
+        inRgb = self.qRgb.get()
+        self.image = inRgb.getCvFrame()
 
 def main(args=None):
-    rclpy.init(args=args)
-
     image_subscriber = ImageSubscriber()
 
     # Define tuning parameters
@@ -241,8 +243,8 @@ def main(args=None):
     # Create tuning window with trackbars
     create_tuning_window(initial_tuning_params)
 
-    while rclpy.ok():
-        rclpy.spin_once(image_subscriber)
+    while True:
+        image_subscriber.listener_callback()
 
         if image_subscriber.image is not None:
             # Get current tuning parameters
@@ -260,10 +262,6 @@ def main(args=None):
 
     # Destroy all windows when done
     cv2.destroyAllWindows()
-
-    image_subscriber.destroy_node()
-    rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()

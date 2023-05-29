@@ -10,103 +10,94 @@
 
 # Check list: 
 # 1. test the accuracy using rgb and infrared as the source frame. The necessary to use the manual calibration data
-# 2. the color adjustment--> drag thing
-# 3. dno't need to draw the contour later
+# 2. link offset: https://web.ics.purdue.edu/~rvoyles/Classes/ROSprogramming/Lectures/TF%20(transform)%20in%20ROS.pdf
+# 2. dno't need to draw the contour later
 
+import depthai as dai
+import cv2
+import numpy as np
+import rclpy
+from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-
-# import necessary modules
-import tf2_ros
-import tf2_geometry_msgs
 from geometry_msgs.msg import PointStamped
 
-import rclpy                            # ROS2 Python接口库
-from rclpy.node import Node             # ROS2 节点类
+from sensor_msgs.msg import PointCloud2
+import tf2_ros
+import tf2_geometry_msgs
 
-import cv2                              # OpenCV图像处理库
-import numpy as np                      # Python数值计算库
-
-# RGB Camera Parameters
-rgb_focal_length = np.array([1066.0224, 1065.5055])
-rgb_principal_point = np.array([964.0866, 543.1938])
-rgb_radial_distortion = np.array([0.0609, -0.0395])
-
-# Infrared Camera Parameters
-infrared_focal_length = np.array([365.5223, 364.8092])
-infrared_principal_point = np.array([253.6649, 210.8401])
-infrared_radial_distortion = np.array([0.0940, -0.2381])
-
-# Construct distortion coefficient matrix
-rgb_distortion_coefficients = np.array([rgb_radial_distortion[0],
-                                        rgb_radial_distortion[1],
-                                        0, 0, 0])
-infrared_distortion_coefficients = np.array([infrared_radial_distortion[0],
-                                        infrared_radial_distortion[1],
-                                        0, 0, 0])
-
-# Camera Matrix
-rgb_camera_matrix = np.array([[rgb_focal_length[0], 0, rgb_principal_point[0]],
-                              [0, rgb_focal_length[1], rgb_principal_point[1]],
-                              [0, 0, 1]])
-
-infrared_camera_matrix = np.array([[infrared_focal_length[0], 0, infrared_principal_point[0]],
-                                   [0, infrared_focal_length[1], infrared_principal_point[1]],
-                                   [0, 0, 1]])
-
-#Color Range1 -- more saturated and brighter
-lower_brown = np.array([10, 50, 60])    # Poop的HSV阈值下限
-upper_brown = np.array([40, 225, 255])  # Poop的HSV阈值上限
-
-#Color Range2 -- include more reddish or yellowish colors
-# lower_brown = np.array([5, 30, 40])    # Poop的HSV阈值下限
-# upper_brown = np.array([50, 200, 230])  # Poop的HSV阈值上限
-
+lower_brown = np.array([0, 50, 72])    # Poop的HSV阈值下限
+upper_brown = np.array([48, 189, 186])  # Poop的HSV阈值上限
 
 class PoopDetectorNode(Node):
     def __init__(self):
         super().__init__("poop_detector_node")
         self.bridge = CvBridge()
-        self.image_subscriber = self.create_subscription(Image,"/kinect2/qhd/image_color_rect", self.image_callback, 10)
-        self.depth_subscriber = self.create_subscription(Image, "/kinect2/qhd/image_depth_rect", self.depth_callback, 10)
-        self.depth_image = None
+    
+        # Depthai pipeline
+        self.pipeline = dai.Pipeline()
+
+        # Create a color camera node and configure it
+        self.cam_rgb = self.pipeline.createColorCamera()
+        self.cam_rgb.setPreviewSize(1280, 720)
+        self.cam_rgb.setInterleaved(False)
+        self.cam_rgb.setFps(30)
+
+        # Create and configure a stereo depth node
+        self.stereo = self.pipeline.createStereoDepth()
+        self.stereo.setConfidenceThreshold(200)
+        
+        # Add this line to get the rectified frames which are aligned with the RGB frame
+        # self.stereo.setOutputRectified(True)
+
+        # Create and configure the mono (LEFT and RIGHT) cameras
+        self.left = self.pipeline.createMonoCamera()
+        self.left.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+        self.left.setBoardSocket(dai.CameraBoardSocket.LEFT)
+        self.right = self.pipeline.createMonoCamera()
+        self.right.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+        self.right.setBoardSocket(dai.CameraBoardSocket.RIGHT)
+
+        # Link the mono camera outputs to the stereo depth node
+        self.left.out.link(self.stereo.left)
+        self.right.out.link(self.stereo.right)
+
+        # Create output nodes for the RGB camera and stereo depth node
+        self.xout_rgb = self.pipeline.createXLinkOut()
+        self.xout_rgb.setStreamName("rgb")
+        self.cam_rgb.preview.link(self.xout_rgb.input)
+        self.xout_depth = self.pipeline.createXLinkOut()
+        self.xout_depth.setStreamName("depth")
+        self.stereo.depth.link(self.xout_depth.input)
+
+        # Start the pipeline and get the device
+        self.device = dai.Device(self.pipeline)
+
+        self.q_rgb = self.device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        self.q_depth = self.device.getOutputQueue(name="depth", maxSize=4, blocking=False)
+
+        self.point_publisher = self.create_publisher(PointStamped, '/poop_coordinates', 10) # create a publisher for 'Point Stamped message'
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
-        self.point_publisher = self.create_publisher(PointStamped, '/poop_coordinates', 10) # create a publisher for 'Point Stamped message'
+        self.timer = self.create_timer(1.0, self.timer_callback)  # Timer callback at a rate of 1 Hz
 
 
-
-    def image_callback(self, msg):
-        try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-            cv_image = self.undistort_image(cv_image, rgb_camera_matrix, rgb_distortion_coefficients)
-        except CvBridgeError as e:
-            print(e)
-            return
-        
-        if self.depth_image is not None:
-            bounding_box = self.find_object(cv_image)
+    def timer_callback(self):
+        in_rgb = self.q_rgb.tryGet()
+        in_depth = self.q_depth.tryGet()
+        if in_rgb is not None and in_depth is not None:
+            frame = in_rgb.getCvFrame()
+            depth_frame = in_depth.getCvFrame()
+            depth_frame = cv2.resize(depth_frame, (frame.shape[1], frame.shape[0]))
+            bounding_box = self.find_object(frame, depth_frame)
             if bounding_box is not None:
-                self.convert_to_world_coordinates(self.depth_image, bounding_box)
+                self.convert_to_world_coordinates(depth_frame, bounding_box)
             else:
                 self.get_logger().info("No object found in image")
-        else:
-            self.get_logger().info("Depth image is not available ")
 
 
-    def depth_callback(self, msg):
-        try:
-            self.depth_image = self.bridge.imgmsg_to_cv2(msg, "32FC1")
-            self.depth_image = self.undistort_image(self.depth_image, infrared_camera_matrix, infrared_distortion_coefficients)
-        except CvBridgeError as e:
-            print(e)
-            return
-    
-    def undistort_image(self, image, camera_matrix, distortion_coefficients):
-        undistorted_image = cv2.undistort(image, camera_matrix, distortion_coefficients)
-        return undistorted_image
 
-    def find_object(self, image):
+    def find_object(self, image, depth_image):
         max_area = 0
         max_cnt = None
         hsv_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) 
@@ -114,7 +105,7 @@ class PoopDetectorNode(Node):
         contours, hierarchy = cv2.findContours(mask_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
 
         for cnt in contours:
-            if cnt.shape[0] < 150:
+            if cnt.shape[0] < 10: 
                 continue
 
             area = cv2.contourArea(cnt)
@@ -128,49 +119,49 @@ class PoopDetectorNode(Node):
             cv2.circle(image, (int(x+w/2), int(y+h/2)), 5, (0, 255, 0), -1)
 
             cv2.imshow("object", image)
+            #cv2.imshow("Depth object", depth_image)
             cv2.waitKey(500)
             return x, y, w, h
 
         return None
 
     def convert_to_world_coordinates(self, depth_image, bounding_box):
-        # # RGB camera parameters
-        # cx = rgb_principal_point[0]
-        # cy = rgb_principal_point[1]
-        # fx = rgb_focal_length[0]
-        # fy = rgb_focal_length[1]
-        
-        # IR camera parameters
-        cx = infrared_principal_point[0]
-        cy = infrared_principal_point[1]
-        fx = infrared_focal_length[0]
-        fy = infrared_focal_length[1]
-
+        # OAK-D RGB camera parameters (replace these with actual values)
+        cx = 3075.462646484375  # principal point 
+        cy = 3075.462646484375  # principal point 
+        fx = 1919.828857421875  # focal length
+        fy = 1079.656005859375  # focal length
 
         if bounding_box is not None and depth_image is not None:
             (x, y, w, h) = bounding_box
 
-            # apply the quadratic calibration to the depth data
-            camera_read = depth_image[int(y+h/2), int(x+w/2)]
-
-            # check if the camera reading is a valid number (not zero)
-            if camera_read == 0:
-                self.get_logger().info('Invalid depth reading, ignoring...')
+            # read the depth data (in millimeters)
+            if int(y+h/2) < depth_image.shape[0] and int(x+w/2) < depth_image.shape[1]:
+                depth = depth_image[int(y+h/2), int(x+w/2)]
+                self.get_logger().info('Depth: ' + str(depth))
+            else:
+                self.get_logger().info('Bounding box center is out of image boundaries, ignoring...')
                 return
-            
-            calibrated_depth = 0.0007415470919300713 * (camera_read**2) - 0.3236496146104614 * camera_read + 461.469635957998
+
+            # check if the depth reading is a valid number (not zero)
+            if depth == 0:
+                self.get_logger().info('Invalid depth reading as 0, ignoring...')
+                return
+
+            # convert to meters
+            depth = depth / 1000.0
 
             # convert to world coordinates
             u = int(x+w/2)
             v = int(y+h/2)
-            world_X = (u - cx) * calibrated_depth / fx
-            world_Y = (v - cy) * calibrated_depth / fy
-            world_Z = calibrated_depth
+            world_X = (u - cx) * depth / fx
+            world_Y = (v - cy) * depth / fy
+            world_Z = depth
 
-             # create a PointStamped message
+            # create a PointStamped message
             point_camera_frame = PointStamped()
             point_camera_frame.header.stamp = self.get_clock().now().to_msg()
-            point_camera_frame.header.frame_id = 'kinect2_link' #'kinect2_link'  # replace with your Kinect2 frame ID
+            point_camera_frame.header.frame_id = 'oak_d_link'  # replace with your OAK-D frame ID
             point_camera_frame.point.x = world_X
             point_camera_frame.point.y = world_Y
             point_camera_frame.point.z = world_Z
@@ -178,23 +169,19 @@ class PoopDetectorNode(Node):
             # transform the point to the map frame
             try:
                 transform = self.tf_buffer.lookup_transform('map',  # target frame
-                                            'kinect2_link',  # source frame
+                                            'oak_d_link',  # source frame
                                             rclpy.time.Time(),  # time
                                             rclpy.duration.Duration(seconds=5.0))  # timeout
                 point_map_frame = tf2_geometry_msgs.do_transform_point(point_camera_frame, transform)
                 self.point_publisher.publish(point_map_frame)  # publish the point
                 self.get_logger().info('Publishing: "%s"' % point_map_frame.point) 
-                #return (point_map_frame.point.x, point_map_frame.point.y, point_map_frame.point.z)
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as ex:
                 self.get_logger().warn('Transform lookup failed: %s' % ex)
-                #return None
-
 
 def main(args=None):
    rclpy.init(args=args)
    poop_detector_node = PoopDetectorNode()
    rclpy.spin(poop_detector_node)
-
 
    poop_detector_node.destroy_node()
    rclpy.shutdown()
