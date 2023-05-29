@@ -45,7 +45,7 @@ class crap_main_controller (Node):
 		# subscribe to /ball_location of type PointStamped
 		self.subscriptionBallLoc = self.create_subscription(
 			PointStamped,
-			'/ball_location',
+			'/poop_coordinates',
 			self.BallLoclistener_callback,
 			10)
 		self.get_logger().info('Ball location subscriber created')

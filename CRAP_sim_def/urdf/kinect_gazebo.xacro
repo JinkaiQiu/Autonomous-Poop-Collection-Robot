@@ -25,10 +25,10 @@
             <child link="${prefix}_link"/>
         </joint>
 
-        <link name="${prefix}_ir_optical_frame"/>
+        <!-- <link name="${prefix}_ir_optical_frame"/> -->
 
         <!-- location of the depth camera relative to kinect frame -->
-        <joint name="${prefix}_depth_joint" type="fixed">
+        <!-- <joint name="${prefix}_depth_joint" type="fixed">
             <origin xyz="0.03 0 0.045" rpy="${-pi/2} 0 ${-pi/2}"/>
             <parent link="${prefix}_link"/>
             <child link="${prefix}_ir_optical_frame"/>
@@ -41,7 +41,7 @@
             <origin xyz="0.03 -0.09 0.045" rpy="${-pi/2} 0 ${-pi/2}"/>
             <parent link="${prefix}_link"/>
             <child link="${prefix}_rgb_optical_frame"/>
-        </joint>
+        </joint> -->
 
         <gazebo reference="${prefix}_link">
             <sensor name="depth_camera" type="depth">

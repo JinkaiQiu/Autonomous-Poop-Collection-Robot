@@ -86,15 +86,6 @@ def generate_launch_description():
     )
 
 
-    # Kinect Node
-    kinect = launch_ros.actions.Node(
-        package='learning_node',
-        executable='node_object_1pp',
-        name='node_object_1pp',
-        parameters=[{'use_sim_time': use_sim_time}],
-        output='screen'),
-
-
     # Twist mux node
     pkg_share_nav = launch_ros.substitutions.FindPackageShare(package='CRAP_navigation').find('CRAP_navigation')
     twist_mux_node = launch_ros.actions.Node(
@@ -111,13 +102,6 @@ def generate_launch_description():
         event_handler=OnProcessExit(
             target_action=joint_broad_spawner,
             on_exit=[diff_drive_spawner],
-        )
-    )
-
-    kinect_delayed = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=joint_broad_spawner,
-            on_exit=[kinect],
         )
     )
 
@@ -149,14 +133,5 @@ def generate_launch_description():
                                     description='Absolute path to rviz config file'),
         rviz_node_delayed,
 
-        #launch kinect
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(['src/kinect2_ros2/kinect2_bridge/launch/kinect2_bridge.launch.py']),
-            launch_arguments={
-                'sensor': '008190334247',
-                'use_sim_time': use_sim_time
-            }.items(),
-        ),
-        kinect_delayed,
 
     ])

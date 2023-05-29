@@ -75,7 +75,7 @@
 
   <!-- Define the rgbd camera -->
   <xacro:include filename="kinect_gazebo.xacro"/>
-  <xacro:kinect_camera prefix="kinect2" parent="base_link" x="0.205" y="0" z="${0.26-base_height/2}"/>
+  <xacro:kinect_camera prefix="oak_d" parent="base_link" x="0.205" y="0" z="${0.26-base_height/2}"/>
 
   <!-- Define ROS2 control -->
   <xacro:include filename="ros2_control_real.xacro"/>
