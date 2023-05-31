@@ -110,9 +110,9 @@ def generate_launch_description():
         # launch lidar node
         
         launch.actions.DeclareLaunchArgument('lidar_params_file',
-                                           default_value=os.path.join(
-                                            share_dir, 'params', 'X3.yaml'),
-                                           description='FPath to the ROS2 parameters file to use.'),
+                                            default_value=os.path.join(
+                                             share_dir, 'params', 'X3.yaml'),
+                                            description='FPath to the ROS2 parameters file to use.'),
         lidar_driver_node,
        
         # launch ros2 control nodes
