@@ -171,18 +171,18 @@ def normalise_keypoint(cv_image, kp):
 
 def create_tuning_window(initial_values):
     cv2.namedWindow("Tuning", 0)
-    cv2.createTrackbar("x_min","Tuning",initial_values['x_min'],100,no_op)
-    cv2.createTrackbar("x_max","Tuning",initial_values['x_max'],100,no_op)
-    cv2.createTrackbar("y_min","Tuning",initial_values['y_min'],100,no_op)
-    cv2.createTrackbar("y_max","Tuning",initial_values['y_max'],100,no_op)
+#     cv2.createTrackbar("x_min","Tuning",initial_values['x_min'],100,no_op)
+#     cv2.createTrackbar("x_max","Tuning",initial_values['x_max'],100,no_op)
+#     cv2.createTrackbar("y_min","Tuning",initial_values['y_min'],100,no_op)
+#     cv2.createTrackbar("y_max","Tuning",initial_values['y_max'],100,no_op)
     cv2.createTrackbar("h_min","Tuning",initial_values['h_min'],180,no_op)
     cv2.createTrackbar("h_max","Tuning",initial_values['h_max'],180,no_op)
     cv2.createTrackbar("s_min","Tuning",initial_values['s_min'],255,no_op)
     cv2.createTrackbar("s_max","Tuning",initial_values['s_max'],255,no_op)
     cv2.createTrackbar("v_min","Tuning",initial_values['v_min'],255,no_op)
     cv2.createTrackbar("v_max","Tuning",initial_values['v_max'],255,no_op)
-    cv2.createTrackbar("sz_min","Tuning",initial_values['sz_min'],100,no_op)
-    cv2.createTrackbar("sz_max","Tuning",initial_values['sz_max'],100,no_op)
+#     cv2.createTrackbar("sz_min","Tuning",initial_values['sz_min'],100,no_op)
+#     cv2.createTrackbar("sz_max","Tuning",initial_values['sz_max'],100,no_op)
 
 
 def get_tuning_params():
