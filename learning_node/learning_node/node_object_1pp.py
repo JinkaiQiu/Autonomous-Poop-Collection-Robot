@@ -26,8 +26,8 @@ from sensor_msgs.msg import PointCloud2
 import tf2_ros
 import tf2_geometry_msgs
 
-lower_brown = np.array([0, 50, 72])    # Poop的HSV阈值下限
-upper_brown = np.array([48, 189, 186])  # Poop的HSV阈值上限
+lower_brown = np.array([7, 62, 62])    # Poop的HSV阈值下限
+upper_brown = np.array([11, 208, 228])  # Poop的HSV阈值上限
 
 class PoopDetectorNode(Node):
     def __init__(self):
@@ -105,7 +105,7 @@ class PoopDetectorNode(Node):
         contours, hierarchy = cv2.findContours(mask_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
 
         for cnt in contours:
-            if cnt.shape[0] < 10: 
+            if cnt.shape[0] < 5: 
                 continue
 
             area = cv2.contourArea(cnt)
@@ -127,10 +127,10 @@ class PoopDetectorNode(Node):
 
     def convert_to_world_coordinates(self, depth_image, bounding_box):
         # OAK-D RGB camera parameters (replace these with actual values)
-        cx = 1919.828857421875  # principal point 
-        cy = 1079.656005859375  # principal point 
-        fx = 3075.462646484375  # focal length
-        fy = 3075.462646484375  # focal length
+        cx = 3075.462646484375  # principal point 
+        cy = 3075.462646484375  # principal point 
+        fx = 1919.828857421875  # focal length
+        fy = 1079.656005859375  # focal length
 
         if bounding_box is not None and depth_image is not None:
             (x, y, w, h) = bounding_box
