@@ -26,8 +26,8 @@ from sensor_msgs.msg import PointCloud2
 import tf2_ros
 import tf2_geometry_msgs
 
-lower_brown = np.array([7, 62, 62])    # Poop的HSV阈值下限
-upper_brown = np.array([11, 208, 228])  # Poop的HSV阈值上限
+lower_brown = np.array([1, 125, 80])    # Poop的HSV阈值下限
+upper_brown = np.array([10, 231, 254])  # Poop的HSV阈值上限
 
 class PoopDetectorNode(Node):
     def __init__(self):
