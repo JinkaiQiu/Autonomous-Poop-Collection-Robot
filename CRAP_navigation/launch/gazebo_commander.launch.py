@@ -15,7 +15,7 @@ def generate_launch_description():
     pkgShare_dir = launch_ros.substitutions.FindPackageShare(package='CRAP_navigation').find('CRAP_navigation')
 
     # map_yaml_file = os.path.join(pkgShare_dir, 'maps', 'my_map_save.yaml')
-    map_yaml_file = os.path.join(pkgShare_dir, 'maps', 'biggerMAP.yaml')
+    map_yaml_file = os.path.join(pkgShare_dir, 'maps', 'taroom.yaml')
     nav_yaml_file = os.path.join(pkgShare_dir, 'config', 'nav2_params.yaml')
 
     bringup_cmd = IncludeLaunchDescription(
@@ -48,20 +48,12 @@ def generate_launch_description():
     )
 
 
-
-    # amcl_cmd = Node(
-    #     package='nav2_amcl',
-    #     executable='amcl',
-    #     output='screen',
-    #     parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time'),}]
-    #     )
-
     test_cmd_delayed = TimerAction(period=5.0, actions=[test_cmd])
     # fake_ball_delayed = TimerAction(period=5.0, actions=[fake_ball])
 
     ld = LaunchDescription()
     ld.add_action(bringup_cmd)
-    ld.add_action(grab_action_cmd)
+    # ld.add_action(grab_action_cmd)
     # ld.add_action(controller_cmd)
     ld.add_action(test_cmd)
     # ld.add_action(fake_ball)
