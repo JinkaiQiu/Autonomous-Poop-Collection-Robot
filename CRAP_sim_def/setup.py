@@ -17,7 +17,9 @@ setup(
         (os.path.join('share', package_name, 'rviz'), glob(os.path.join('rviz', '*.*'))),
         (os.path.join('share', package_name, 'worlds'), glob(os.path.join('worlds', '*.*'))),   
         (os.path.join('share', package_name, 'urdf'), glob(os.path.join('urdf', '*.*'))),
-
+        (os.path.join('share', package_name, 'models'), glob(os.path.join('models', '*.*'))),
+        (os.path.join('share', package_name, 'models'), glob(os.path.join('models/map', '*.*'))),
+        (os.path.join('share', package_name, 'models'), glob(os.path.join('models/map/meshes', '*.*'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

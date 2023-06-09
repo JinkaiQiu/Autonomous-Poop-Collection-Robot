@@ -73,16 +73,18 @@ class crap_main_controller (Node):
 		self.costmap_data = None
 		self.costmap_origin = None
 		self.costmap_resolution = None
-
+		self.costmap_width = None
+		self.costmap_height = None
 		# create Flags
 		self.cameraInputExists = False
 		self.readyToCapture = False
 		self.grabbingInProgress = False 
 		self.collected = False
+		self.fixedIterator = True
+		
 
 		# create thread lock
 		self.callback_lock = Lock()
-
 		
 	################################################################################################################
 	# main logic control function
@@ -99,7 +101,7 @@ class crap_main_controller (Node):
 			# Camera is detecting poop location or not 
 			self.cameraInputExists = (time.time() - self.lastDetectTime) < self.detectionTimeout
 			
-			# if poop exists in camera view, but robot not in position
+			# if poop exists in camera view, but robot not in position####################################################
 			if self.cameraInputExists and not self.readyToCapture:
 				self.get_logger().info('Case 1: detected and navigating to initial capturing pose ...')
 				
@@ -111,7 +113,7 @@ class crap_main_controller (Node):
 					self.refreshingNeeded = True
 					self.forwarded = False
 				
-				if self.detectedTimes%5 == 0 and self.refreshingNeeded: # run every 5 times of detection
+				if self.detectedTimes%3 == 0 and self.refreshingNeeded: # run every 5 times of detection
 					goal_pose = self.getNavTargetToPoop()
 					self.refreshNavigationGoal(goal_pose)
 
@@ -126,8 +128,6 @@ class crap_main_controller (Node):
 						self.get_logger().info('Initial capturing pose reached!')
 						self.refreshingNeeded = False # no need to refresh goal pose anymore 
 						
-						# if need to tune distance, add here
-						# self.nav.backup(backup_dist=-0.2,backup_speed=0.2)
 						
 						goal_pose = self.getNavTargetToPoop(target_offset=-0.5)
 						self.refreshNavigationGoal(goal_pose)
@@ -142,7 +142,7 @@ class crap_main_controller (Node):
 						self.get_logger().info('Poop reached!')
 						self.readyToCapture = True	
 
-			# robot has moved to position, ready to capture
+			# robot has moved to position, ready to capture ###########################################################
 			elif self.readyToCapture: 
 				self.get_logger().info('Case 2: in position, actuate capturing ...')
 				# run poop capturing sequence
@@ -174,14 +174,15 @@ class crap_main_controller (Node):
 							self.get_logger().info('Backing up ...')
 
 
-			# no robot present, start to search	
+			# no robot present, start to search	 ########################################################################
 			else:
 				self.get_logger().info('Case 3: no poop exists, searching ...')
 				if not self.navigationInProgress:
 					self.nav.cancelTask()
-					goalPose = self.goToRandomPointInCostmap()
+					# goalPose = self.goToRandomPointInCostmap()
+					goalPose = self.fixedPointSearch(Point1=[4.3,-0.1],Point2=[1.0,0.2])
 					if goalPose is None :
-						self.get_logger().error('No low-cost points found.')
+						self.get_logger().error('No goal_pose found.')
 						return
 					self.navigationInProgress = True
 					return
@@ -232,9 +233,32 @@ class crap_main_controller (Node):
 	
 	# callback function for ball_location subscriber
 	def BallLoclistener_callback(self, msg):
-		# assume already filtered by camera node
-		self.lastDetectTime = time.time()
-		self.ballLocMap = [msg.point.x, msg.point.y]
+		# get cost at this point
+		ballLoc = [msg.point.x, msg.point.y]
+		ballLocCost = self.get_cost_at_position(ballLoc)
+		if ballLocCost >= 5:
+			self.get_logger().info('Detected but not in free space, ignoring ...')
+			return
+		else:
+			self.lastDetectTime = time.time()
+			self.ballLocMap = ballLoc
+			return
+
+	
+	def get_cost_at_position(self, position):
+		x = position[0]
+		y = position[1]
+		x_costmap = x - self.costmap_origin[0]
+		y_costmap = y - self.costmap_origin[1]
+		x_index = int(x_costmap / self.costmap_resolution)
+		y_index = int(y_costmap / self.costmap_resolution)
+
+		if (x_index < 0 or x_index >= self.costmap_width or
+        y_index < 0 or y_index >= self.costmap_height):
+			self.get_logger().info('Point out of costmap')
+			return 100
+		else:
+			return self.costmap_data[y_index][x_index]
 
 	# callback function for costmap subscriber
 	def Maplistener_callback(self, msg):
@@ -242,9 +266,43 @@ class crap_main_controller (Node):
 			self.costmap_data = self.costmap_data.reshape(msg.info.height, msg.info.width)
 			self.costmap_resolution = msg.info.resolution
 			self.costmap_origin = [msg.info.origin.position.x, msg.info.origin.position.y]
+			self.costmap_width = msg.info.width
+			self.costmap_height = msg.info.height
 			# self.get_logger().info('Map received')
 
 	# generate random points in costmap
+	def fixedPointSearch(self,Point1=[4.3,-0.1],Point2=[1.0,0.2]):
+		goal_pose = PoseStamped()
+		goal_pose.header.frame_id = 'map'
+		goal_pose.header.stamp = self.nav.get_clock().now().to_msg()
+		if self.fixedIterator:
+			goal_pose.pose.position.x = Point1[0]
+			goal_pose.pose.position.y = Point1[1]
+			# generate random orientation
+			theta = random.uniform(-pi/6, pi/6)
+			self.fixedIterator = False
+		else:
+			goal_pose.pose.position.x = Point2[0]
+			goal_pose.pose.position.y = Point2[1]
+			self.fixedIterator = True
+			theta = random.uniform(-pi/6+pi, pi/6+pi)
+		
+		q = Quaternion()
+		q.w = cos(theta / 2)
+		q.x = 0.0
+		q.y = 0.0
+		q.z = sin(theta / 2)
+		goal_pose.pose.orientation = q
+		status = self.nav.goToPose(goal_pose)
+		# if path is None:
+		if status == False:
+			self.get_logger().info('Path not found, retrying')
+		else:
+			reachable = True
+			self.get_logger().info('Path found, navigating to search target')
+			self.navigationInProgress = True
+			return goal_pose
+
 	def goToRandomPointInCostmap(self,threshold = 10,distance_threshold = 1):
 		low_cost_indices = np.argwhere(self.costmap_data < threshold)
 		if len(low_cost_indices) < 1:
