@@ -26,7 +26,7 @@ from sensor_msgs.msg import PointCloud2
 import tf2_ros
 import tf2_geometry_msgs
 
-lower_brown = np.array([1, 125, 80])    # Poop的HSV阈值下限
+lower_brown = np.array([5, 125, 80])    # Poop的HSV阈值下限
 upper_brown = np.array([10, 231, 254])  # Poop的HSV阈值上限
 
 class PoopDetectorNode(Node):
@@ -105,7 +105,12 @@ class PoopDetectorNode(Node):
         contours, hierarchy = cv2.findContours(mask_red, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
 
         for cnt in contours:
-            if cnt.shape[0] < 5: 
+            if cnt.shape[0] < 5: #skips over any contours that have fewer than 5 points.
+                continue
+            
+            (x, y, w, h) = cv2.boundingRect(cnt)
+            # Check the width-to-height and height-to-width ratios.
+            if w/h > 8 or h/w > 8:
                 continue
 
             area = cv2.contourArea(cnt)
@@ -114,7 +119,7 @@ class PoopDetectorNode(Node):
                 max_cnt = cnt
 
         if max_cnt is not None:
-            (x, y, w, h) = cv2.boundingRect(max_cnt)
+            (x, y, w, h) = cv2.boundingRect(max_cnt)    
             cv2.drawContours(image, [max_cnt], -1, (0, 255, 0), 2)
             cv2.circle(image, (int(x+w/2), int(y+h/2)), 5, (0, 255, 0), -1)
 
