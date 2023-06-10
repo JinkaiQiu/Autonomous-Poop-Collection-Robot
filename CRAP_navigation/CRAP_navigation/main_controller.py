@@ -180,7 +180,7 @@ class crap_main_controller (Node):
 				if not self.navigationInProgress:
 					self.nav.cancelTask()
 					# goalPose = self.goToRandomPointInCostmap()
-					goalPose = self.fixedPointSearch(Point1=[4.3,-0.1],Point2=[1.0,0.2])
+					goalPose = self.fixedPointSearch(Point1=[4.0,-0.1],Point2=[1.0,0.5])
 					if goalPose is None :
 						self.get_logger().error('No goal_pose found.')
 						return

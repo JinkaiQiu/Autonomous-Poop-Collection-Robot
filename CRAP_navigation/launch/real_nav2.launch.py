@@ -15,7 +15,7 @@ def generate_launch_description():
     pkgShare_dir = launch_ros.substitutions.FindPackageShare(package='CRAP_navigation').find('CRAP_navigation')
 
     # map_yaml_file = os.path.join(pkgShare_dir, 'maps', 'my_map_save.yaml')
-    map_yaml_file = os.path.join(pkgShare_dir, 'maps', 'biggerMAP.yaml')
+    map_yaml_file = os.path.join(pkgShare_dir, 'maps', 'taroom.yaml')
     nav_yaml_file = os.path.join(pkgShare_dir, 'config', 'nav2_params.yaml')
 
     bringup_cmd = IncludeLaunchDescription(

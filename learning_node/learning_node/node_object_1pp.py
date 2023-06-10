@@ -132,10 +132,10 @@ class PoopDetectorNode(Node):
 
     def convert_to_world_coordinates(self, depth_image, bounding_box):
         # OAK-D RGB camera parameters (replace these with actual values)
-        cx = 3075.462646484375  # principal point 
-        cy = 3075.462646484375  # principal point 
-        fx = 1919.828857421875  # focal length
-        fy = 1079.656005859375  # focal length
+        cx = 672.60528564453  # principal point 
+        cy = 380.10465240478  # principal point 
+        fx = 879.0387571405  # focal length
+        fy = 878.40829065775  # focal length
 
         if bounding_box is not None and depth_image is not None:
             (x, y, w, h) = bounding_box
@@ -160,16 +160,18 @@ class PoopDetectorNode(Node):
             u = int(x+w/2)
             v = int(y+h/2)
             world_X = (u - cx) * depth / fx
+            print(world_X)
             world_Y = (v - cy) * depth / fy
+            print(world_Y)
             world_Z = depth
 
             # create a PointStamped message
             point_camera_frame = PointStamped()
             point_camera_frame.header.stamp = self.get_clock().now().to_msg()
             point_camera_frame.header.frame_id = 'oak_d_link'  # replace with your OAK-D frame ID
-            point_camera_frame.point.x = world_X
-            point_camera_frame.point.y = world_Y
-            point_camera_frame.point.z = world_Z
+            point_camera_frame.point.x = -world_X
+            point_camera_frame.point.y = -world_Y
+            point_camera_frame.point.z = world_Z 
 
             # transform the point to the map frame
             try:
@@ -178,6 +180,7 @@ class PoopDetectorNode(Node):
                                             rclpy.time.Time(),  # time
                                             rclpy.duration.Duration(seconds=5.0))  # timeout
                 point_map_frame = tf2_geometry_msgs.do_transform_point(point_camera_frame, transform)
+                point_map_frame.point.z = 0.0
                 self.point_publisher.publish(point_map_frame)  # publish the point
                 self.get_logger().info('Publishing: "%s"' % point_map_frame.point) 
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as ex:

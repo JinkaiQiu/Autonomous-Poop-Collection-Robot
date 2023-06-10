@@ -16,7 +16,7 @@ class PoopCollectionActionServer(Node):
             'collect_poop',
             self.execute_callback)
         try:
-            self.ser = serial.Serial('/dev/ttyACM0', 9600) #may pending on the port
+            self.ser = serial.Serial('/dev/ttyACM1', 9600) #may pending on the port
             if not self.ser.isOpen():
                 raise IOError("Serial port could not be opened.")
         except Exception as e:

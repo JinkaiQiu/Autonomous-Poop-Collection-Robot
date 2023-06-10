@@ -31,6 +31,7 @@ setup(
         'test_bucketAction = CRAP_navigation.test_bucketAction:main',
         'fake_ball_publisher = CRAP_navigation.fake_ball_publisher:main',
         'main_controller = CRAP_navigation.main_controller:main',
+        'amclinit = CRAP_navigation.amclinit:main'
         # 'random_searchig_test = CRAP_navigation.random_searchig_test:main',
         ],
     },
