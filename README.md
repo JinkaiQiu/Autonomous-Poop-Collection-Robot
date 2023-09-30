@@ -1,7 +1,7 @@
 # Autonomous Poop Detection Robot
 This is the source code repo for 2023 Spring Senior Design Project for at UCLA. The code intends to create a robot that is able to navigate autonomously, look for poops lying on the ground, and capture it using ROS2 Framework.   
    
-The presentation detailing the features of the robot can be found [**HERE**](https://docs.google.com/presentation/d/1VEbmPY12iC3s48DDqnpAfTMvGVQjlws_VFBhDWr3rWM/edit?usp=sharing) 
+T**he presentation detailing the features of the robot can be found** [**HERE**](https://docs.google.com/presentation/d/1VEbmPY12iC3s48DDqnpAfTMvGVQjlws_VFBhDWr3rWM/edit?usp=sharing) 
 ## Dependencies
 - ROS2 Humble
 - xacro
@@ -10,7 +10,7 @@ The presentation detailing the features of the robot can be found [**HERE**](htt
 - SLAM Toolbox
 - OpenCV
 
-## Folders
+## Important Folders
 ### CRAP_navigation
 *Coded by Jinkai*  
 The folder defines a ROS2 package that executes navigation related tasks such as the main control script, logics to look for poop, and logics to capture the poop. `CRAP_navigation` sub-folder defines the core functions of the system. `config` folder contains configuration related to NAV2 stack, velocity muxing, and Extended Kalman Filter. `maps` folder contains stored maps for reference by the NAV2 stack. `launch` folder contains necessary launch files to launch each of the functionalities of the robot, mostly for testing and debugging purposes.
@@ -18,7 +18,7 @@ The folder defines a ROS2 package that executes navigation related tasks such as
 *Coded by Jinkai*  
 The folder defines a ROS2 package to launch the robot either in simulation or in the physical environment. `urdf` folder contains urdf definition files for the robot. `launch` folder contains launch files that are responsible for launching **either** the simulation or the actual physical hardwares. 
 ### Hardware Drivers
-*Aopted and Coded by Jinkai*
+*Adopted and Coded by Jinkai*
 The folder contains drivers for various hardwares of the robot, as well as Arduino codes. `ROSArduinoBridge` defines scripts that drive an Arduino for the lower-level control of two drive motors, in serial control with the controller raspberry. `diffdrive_arduino` is adopted to provide ROS2 control interface that handles kinematics with the Arduino controlling the drive motors. `poop_collection_arduino` defines scripts that drive another Arduino for executing the poop capturing actions, in serial communication with the raspberry. `serial_motor_demo` defines serial interface between the raspberry and the Arduinos, and it also defines an action server that executes the poop capturing action.  `serial_motor_msgs` define the customized ROS2 messages and actions used by `serial_motor_demo`. 
 ### learning_node
 *Coded by Yini*  
@@ -39,3 +39,10 @@ Three states are orchestrated encapsulated in the `timer_callback method`, which
 1. **Navigation State**: The robot navigates towards the detected object to a suitable position for collection. This state involves handling navigation goals and feedback to ensure the robot reaches the desired location.
 2. **Collection State**: Once in position, the robot initiates the collection process. During this state, it sends a goal to an action server to collect the object.
 3. **Searching State**: If no object is detected, the robot navigates to different points in its environment in search of objects.
+
+## Credits
+Patrick Goebel and James Nugen for the original ROSArduinoBridge   
+Josh Newans for a forked ROSArduinoBridge, part of the serial_motor_demo, part of the serial_motor_msgs packages, and diffdrive_arduino   
+YDLidar for providing a ROS2 driver for the Lidar ( Although the driver is faulty and needed to be debugged before actual use :( )
+DepthAI for providing a ROS2 driver for the RGBD camera
+
