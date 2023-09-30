@@ -43,6 +43,6 @@ Three states are orchestrated encapsulated in the `timer_callback method`, which
 ## Credits
 Patrick Goebel and James Nugen for the original ROSArduinoBridge   
 Josh Newans for a forked ROSArduinoBridge, part of the serial_motor_demo, part of the serial_motor_msgs packages, and diffdrive_arduino   
-YDLidar for providing a ROS2 driver for the Lidar ( Although the driver is faulty and needed to be debugged before actual use :( )
+YDLidar for providing a ROS2 driver for the Lidar ( Although the driver is faulty and needed to be debugged before actual use :( )     
 DepthAI for providing a ROS2 driver for the RGBD camera
 
