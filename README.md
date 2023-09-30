@@ -1,4 +1,4 @@
-# Autonomous Poop Detection Robot
+# Autonomous Poop Collection Robot
 This is the source code repo for 2023 Spring Senior Design Project for at UCLA. The code intends to create a robot that is able to navigate autonomously, look for poops lying on the ground, and capture it using ROS2 Framework.   
    
 T**he presentation detailing the features of the robot can be found** [**HERE**](https://docs.google.com/presentation/d/1VEbmPY12iC3s48DDqnpAfTMvGVQjlws_VFBhDWr3rWM/edit?usp=sharing) 
